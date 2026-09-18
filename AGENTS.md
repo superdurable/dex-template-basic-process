@@ -1,0 +1,29 @@
+# Basic Process Template Instructions
+
+This is a complete Superverse `go-react-v1` application. Read
+`.superverse/template.json`, `openapi/openapi.yaml`, and the local
+`dex-developer` skill before changing Dex behavior.
+
+`openapi/openapi.yaml` is the only HTTP contract source. Never edit files below
+`internal/api/generated` or `web/src/api/generated` by hand. Change the spec,
+run `make generate`, and update server, UI, integration, and E2E coverage in the
+same change.
+
+The Dex Flow has stable Step, Attribute, Channel, Timer, and RPC identities.
+Keep external effects in `Execute`; `WaitForApproval.WaitFor` only declares the
+approval Channel and reminder Timer. Register every durable primitive in the
+Flow persistence schema. Preserve open-Flow compatibility unless the user
+explicitly requests a migration.
+
+After each edit batch, run the narrowest relevant Make target. Before calling
+`commit_and_push`, run `make check` successfully and include it in verification.
+If `make check` fails or cannot run, report `blocked=true`. Do not weaken, skip,
+or delete a failing check.
+
+Stable commands are `make bootstrap`, `make generate`, `make check-generated`,
+`make test-unit`, `make test-integration`, `make test-e2e`, `make build`,
+`make dev`, and `make check`.
+
+When structure, commands, or required tooling changes, update this file,
+`.superverse/template.json`, `README.md`, and contract tests together. Do not
+maintain a separate static repository map.

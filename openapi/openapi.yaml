@@ -1,0 +1,170 @@
+openapi: 3.0.3
+info:
+  title: Dex Basic Process API
+  version: 1.0.0
+paths:
+  /api/health:
+    get:
+      operationId: getHealth
+      responses:
+        '200':
+          description: Application is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/flows:
+    post:
+      operationId: createFlow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFlowRequest'
+      responses:
+        '201':
+          description: Flow created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlowView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /api/flows/{flowId}:
+    parameters:
+      - $ref: '#/components/parameters/FlowId'
+    get:
+      operationId: getFlow
+      responses:
+        '200':
+          description: Current durable Flow view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlowView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /api/flows/{flowId}/approvals:
+    parameters:
+      - $ref: '#/components/parameters/FlowId'
+    post:
+      operationId: approveFlow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalRequest'
+      responses:
+        '200':
+          description: Approval accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlowView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+components:
+  parameters:
+    FlowId:
+      name: flowId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^process-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+  schemas:
+    ProcessState:
+      type: string
+      enum: [started, validated, waiting_for_approval, reminder_emitted, approved, executing, completed]
+    CreateFlowRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+    ApprovalRequest:
+      type: object
+      additionalProperties: false
+      required: [approved]
+      properties:
+        approved:
+          type: boolean
+          enum: [true]
+    FlowView:
+      type: object
+      additionalProperties: false
+      required: [flowId, title, state, reminderCount]
+      properties:
+        flowId:
+          type: string
+        title:
+          type: string
+        state:
+          $ref: '#/components/schemas/ProcessState'
+        reminderCount:
+          type: integer
+          format: int64
+          minimum: 0
+        result:
+          type: string
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          pattern: '^[a-z][a-z0-9_]*$'
+        message:
+          type: string
+          maxLength: 3000
+  responses:
+    BadRequest:
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Flow not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Request conflicts with Flow state.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unavailable:
+      description: Dex operation is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
