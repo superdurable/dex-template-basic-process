@@ -1,0 +1,40 @@
+name: Template CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            tools/openapi/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dexcli
+        run: |
+          curl --fail --silent --show-error --location \
+            https://github.com/superdurable/dex/releases/download/cli-v0.10.0/dexcli_v0.10.0_linux_amd64.tar.gz \
+            --output /tmp/dexcli.tar.gz
+          echo "0cee3b0795147b581c45d2258b0c2d581cd35ce75c515027e2d9b294ce364e2d  /tmp/dexcli.tar.gz" | sha256sum --check
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf /tmp/dexcli.tar.gz -C "$HOME/.local/bin" dexcli
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install Playwright Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+      - name: Check template
+        run: make check

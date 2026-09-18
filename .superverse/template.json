@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "buildProfile": "go-react-v1",
+  "templateVersion": "1.0.0",
+  "minimumSandboxRuntimeContractRevision": 2,
+  "openapiSpec": "openapi/openapi.yaml",
+  "agentInstructions": "AGENTS.md",
+  "dexSkill": ".agents/skills/dex-developer/SKILL.md",
+  "commands": {
+    "bootstrap": "make bootstrap",
+    "generate": "make generate",
+    "checkGenerated": "make check-generated",
+    "testUnit": "make test-unit",
+    "testIntegration": "make test-integration",
+    "testE2E": "make test-e2e",
+    "build": "make build",
+    "dev": "make dev",
+    "check": "make check"
+  }
+}
