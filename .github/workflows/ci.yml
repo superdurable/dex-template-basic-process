@@ -24,6 +24,16 @@ jobs:
           node-version: 22.22.0
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - name: Install Temporal CLI 1.8.1
+        run: |
+          curl --fail --silent --show-error --location \
+            https://github.com/temporalio/cli/releases/download/v1.8.1/temporal_cli_1.8.1_linux_amd64.tar.gz \
+            --output /tmp/temporal-cli.tar.gz
+          echo "b94417b9a8760b30217f4b881dabce4b16a76a38b5e99e2eca3ce358b8030f06  /tmp/temporal-cli.tar.gz" | sha256sum --check
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf /tmp/temporal-cli.tar.gz -C "$HOME/.local/bin" temporal
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/temporal" --version
       - name: Install dexcli
         run: |
           curl --fail --silent --show-error --location \
