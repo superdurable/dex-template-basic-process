@@ -13,12 +13,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Read Dex Web v2 baseline
+        id: dex-web-v2
+        shell: bash
+        run: echo "revision=$(cat DEX_WEB_V2_BASELINE)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: superdurable/dex
+          ref: ${{ steps.dex-web-v2.outputs.revision }}
+          path: upstream-dex
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: upstream-dex/cli/go.mod
           cache-dependency-path: |
             go.sum
             tools/openapi/go.sum
+            upstream-dex/cli/go.sum
       - uses: actions/setup-node@v4
         with:
           node-version: 22.22.0
@@ -34,14 +44,13 @@ jobs:
           tar -xzf /tmp/temporal-cli.tar.gz -C "$HOME/.local/bin" temporal
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/temporal" --version
-      - name: Install dexcli
+      - name: Build pinned Dex Web v2 CLI
+        working-directory: upstream-dex/cli
+        env:
+          GOWORK: "off"
         run: |
-          curl --fail --silent --show-error --location \
-            https://github.com/superdurable/dex/releases/download/cli-v0.10.0/dexcli_v0.10.0_linux_amd64.tar.gz \
-            --output /tmp/dexcli.tar.gz
-          echo "0cee3b0795147b581c45d2258b0c2d581cd35ce75c515027e2d9b294ce364e2d  /tmp/dexcli.tar.gz" | sha256sum --check
           mkdir -p "$HOME/.local/bin"
-          tar -xzf /tmp/dexcli.tar.gz -C "$HOME/.local/bin" dexcli
+          go build -o "$HOME/.local/bin/dexcli" ./cmd/dexcli
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Install Playwright Chromium
         working-directory: web

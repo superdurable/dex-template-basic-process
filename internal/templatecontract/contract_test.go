@@ -12,6 +12,7 @@ import (
 type manifest struct {
 	SchemaVersion                         int               `json:"schemaVersion"`
 	BuildProfile                          string            `json:"buildProfile"`
+	TemplateVersion                       string            `json:"templateVersion"`
 	MinimumSandboxRuntimeContractRevision int               `json:"minimumSandboxRuntimeContractRevision"`
 	OpenAPISpec                           string            `json:"openapiSpec"`
 	AgentInstructions                     string            `json:"agentInstructions"`
@@ -29,7 +30,7 @@ func TestTemplateContract(t *testing.T) {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.MinimumSandboxRuntimeContractRevision != 2 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.1.0" || contract.MinimumSandboxRuntimeContractRevision != 2 {
 		t.Fatalf("unexpected template identity: %+v", contract)
 	}
 	for _, path := range []string{contract.OpenAPISpec, contract.AgentInstructions, contract.DexSkill} {

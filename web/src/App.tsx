@@ -21,6 +21,8 @@ const stateRank: Record<ProcessState, number> = {
   completed: 5,
 };
 
+const approvableStates = new Set<ProcessState>(['waiting_for_approval', 'reminder_emitted']);
+
 export function App() {
   const [title, setTitle] = useState('Review the launch checklist');
   const [flow, setFlow] = useState<FlowView>();
@@ -92,7 +94,7 @@ export function App() {
           </ol>
           <div className="actions">
             <p>Reminders emitted: <strong data-testid="reminder-count">{flow.reminderCount}</strong></p>
-            {flow.state !== 'completed' && <button disabled={busy} onClick={approve}>Approve</button>}
+            {approvableStates.has(flow.state) && <button disabled={busy} onClick={approve}>Approve</button>}
           </div>
           {flow.result && <p className="result" data-testid="result">{flow.result}</p>}
         </section>
