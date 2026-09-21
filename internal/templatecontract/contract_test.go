@@ -30,7 +30,7 @@ func TestTemplateContract(t *testing.T) {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.1.0" || contract.MinimumSandboxRuntimeContractRevision != 2 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.2.0" || contract.MinimumSandboxRuntimeContractRevision != 2 {
 		t.Fatalf("unexpected template identity: %+v", contract)
 	}
 	for _, path := range []string{contract.OpenAPISpec, contract.AgentInstructions, contract.DexSkill} {
@@ -50,18 +50,21 @@ func TestTemplateContract(t *testing.T) {
 		}
 	}
 	gitmodules := readFile(t, filepath.Join(root, ".gitmodules"))
-	if !strings.Contains(gitmodules, "path = .agents/skills/dex-developer/upstream") ||
-		!strings.Contains(gitmodules, "url = https://github.com/superdurable/skill-dex-developer.git") {
+	if !strings.Contains(gitmodules, "path = .agents/skills/dex-app-builder/upstream") ||
+		!strings.Contains(gitmodules, "url = https://github.com/superdurable/dex-skills.git") {
 		t.Fatal("Dex skill submodule path or public HTTPS URL is not allowlisted")
 	}
-	command := exec.Command("git", "ls-files", "--stage", ".agents/skills/dex-developer/upstream")
+	if _, err := os.Stat(filepath.Join(root, ".agents/skills/dex-sdk/SKILL.md")); err != nil {
+		t.Fatalf("Dex SDK wrapper: %v", err)
+	}
+	command := exec.Command("git", "ls-files", "--stage", ".agents/skills/dex-app-builder/upstream")
 	command.Dir = root
 	output, err := command.Output()
 	if err != nil {
 		t.Fatalf("read Dex skill submodule pin: %v", err)
 	}
 	fields := strings.Fields(string(output))
-	if len(fields) < 2 || fields[0] != "160000" || len(fields[1]) != 40 {
+	if len(fields) < 2 || fields[0] != "160000" || fields[1] != "af3c182de5dc4765b1e402da39eabe5fe5a13c38" {
 		t.Fatalf("Dex skill is not pinned as a gitlink: %q", output)
 	}
 }

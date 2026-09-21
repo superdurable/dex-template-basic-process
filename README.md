@@ -26,6 +26,20 @@ native Web v2 Action. Every Step has an FDG 2.0 group and explanation.
 
 ## Start locally
 
+For the fastest UI interaction loop, start the in-memory mock API and Vite HMR:
+
+```bash
+make bootstrap
+make mock
+```
+
+Open <http://127.0.0.1:8080>. Mock Controls can advance the process, emit a
+reminder, inject the next start/refresh/approval failure, or reset all state.
+The server retains state across browser refreshes and resets it on restart.
+See [Local mock](docs/local-mock.md) for the complete contract.
+
+To run the real Dex Worker and API instead:
+
 ```bash
 make bootstrap
 make dev
@@ -55,12 +69,17 @@ Never edit them manually.
 make test-unit
 make test-integration
 make test-e2e
+make test-mock-e2e
 make check
 ```
 
 Integration tests start a real Dex Server with `dexcli dev`. Playwright drives
 the production UI and uses `dexcli flow skip-timer` to exercise the reminder
 branch without waiting fifteen minutes. Every poll has a deadline.
+
+Mock E2E runs the same frontend against the Go in-memory server without Dex.
+It validates loading, failure recovery, reminders, approval, refresh restore,
+completion, and reset. It does not prove durable execution behavior.
 
 `make check-fdg-v2` validates `internal/process/flow.go` with rendering schema
 2.0 and requires a diagnostic-free graph with `valid: true`. The required
@@ -74,14 +93,16 @@ npm, Python 3, an FDG 2.0-capable `dexcli`, Ogen's cached module dependencies,
 and Chromium Headless Shell. JavaScript packages remain pinned by
 `web/package-lock.json`.
 
-## Dex skill
+## Dex skills
 
-The local skill entry delegates to the pinned public
-`skill-dex-developer` submodule. Initialize it with:
+The local `dex-app-builder` and `dex-sdk` entries delegate to one pinned public
+`dex-skills` submodule. Initialize it with:
 
 ```bash
 git submodule update --init --recursive
 ```
 
-Template maintainers update the pin explicitly; generated applications never
-follow the skill repository's `main` branch implicitly.
+`dex-app-builder` is the product workflow entrypoint and loads the sibling
+`dex-sdk` Core and Go guidance for backend implementation. Template maintainers
+update the pin explicitly; generated applications never follow the skill
+repository's `main` branch implicitly.
