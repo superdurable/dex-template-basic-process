@@ -33,7 +33,9 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: |
+            web/package-lock.json
+            upstream-dex/web/package-lock.json
       - name: Install Temporal CLI 1.8.1
         run: |
           curl --fail --silent --show-error --location \
@@ -45,12 +47,12 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/temporal" --version
       - name: Build pinned Dex Web v2 CLI
-        working-directory: upstream-dex/cli
-        env:
-          GOWORK: "off"
         run: |
+          npm --prefix upstream-dex/web ci
+          npm --prefix upstream-dex/web run check
+          npm --prefix upstream-dex/web run build
           mkdir -p "$HOME/.local/bin"
-          go build -o "$HOME/.local/bin/dexcli" ./cmd/dexcli
+          GOWORK=off go build -C upstream-dex/cli -trimpath -o "$HOME/.local/bin/dexcli" ./cmd/dexcli
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Install Playwright Chromium
         working-directory: web
