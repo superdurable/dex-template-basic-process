@@ -23,4 +23,7 @@ func TestBasicProcessDefinitionRegistersEveryDurablePrimitive(t *testing.T) {
 	if got := len(BasicProcess.GetPersistenceSchema().Channels); got != 1 {
 		t.Fatalf("channel count = %d, want 1", got)
 	}
+	if got := len(BasicProcess.GetRPCs()); got != 4 {
+		t.Fatalf("RPC count = %d, want 4", got)
+	}
 }

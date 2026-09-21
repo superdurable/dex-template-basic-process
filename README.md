@@ -19,6 +19,11 @@ When the Timer fires, `EmitReminder` increments the durable reminder count and
 returns to the waiting step. Approval advances to the execution and completion
 steps.
 
+The Flow is also a complete Dex Web v2 definition. Indexed title and state
+Attributes drive list/search and Action eligibility. `GetDexSummary` and
+`GetDexDisplay` provide the read-only Web views, while `ApproveProcess` is a
+native Web v2 Action. Every Step has an FDG 2.0 group and explanation.
+
 ## Start locally
 
 ```bash
@@ -38,6 +43,7 @@ cleans it up on exit.
 ```bash
 make generate
 make check-generated
+make check-fdg-v2
 ```
 
 Generated files are committed so a checkout is immediately understandable.
@@ -56,11 +62,17 @@ Integration tests start a real Dex Server with `dexcli dev`. Playwright drives
 the production UI and uses `dexcli flow skip-timer` to exercise the reminder
 branch without waiting fifteen minutes. Every poll has a deadline.
 
+`make check-fdg-v2` validates `internal/process/flow.go` with rendering schema
+2.0 and requires a diagnostic-free graph with `valid: true`. The required
+preview `dexcli` source is pinned in `DEX_WEB_V2_BASELINE`; schema v1 is not an
+accepted fallback.
+
 `make check` is the required completion gate for coding agents and CI.
 
 The supported sandbox runtime is contract revision 2. It provides Go, Node.js,
-npm, Python 3, `dexcli`, Ogen's cached module dependencies, and Chromium
-Headless Shell. JavaScript packages remain pinned by `web/package-lock.json`.
+npm, Python 3, an FDG 2.0-capable `dexcli`, Ogen's cached module dependencies,
+and Chromium Headless Shell. JavaScript packages remain pinned by
+`web/package-lock.json`.
 
 ## Dex skill
 

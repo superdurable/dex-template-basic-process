@@ -73,10 +73,10 @@ func (service *Service) Get(ctx context.Context, flowID string) (View, error) {
 }
 
 func (service *Service) Approve(ctx context.Context, flowID string) (View, error) {
-	var snapshot Snapshot
-	err := service.client.InvokeRPC(ctx, flowID, service.flow.ApproveProcess, true, &snapshot)
+	var output dex.None
+	err := service.client.InvokeRPC(ctx, flowID, service.flow.ApproveProcess, nil, &output)
 	if err == nil {
-		return snapshotView(flowID, snapshot), nil
+		return service.Get(ctx, flowID)
 	}
 	var inactive *dex.FlowNotActiveError
 	if errors.As(err, &inactive) {

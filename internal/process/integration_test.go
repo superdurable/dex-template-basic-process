@@ -42,7 +42,7 @@ func TestReminderWorkerRestartApprovalAndTerminalRejection(t *testing.T) {
 	t.Log("reminder Timer skipped")
 	waitFor(t, ctx, func(attemptCtx context.Context) bool {
 		current, getErr := runtime.Processes.Get(attemptCtx, view.FlowID)
-		return getErr == nil && current.ReminderCount == 1 && current.State == process.StateWaitingForApproval
+		return getErr == nil && current.ReminderCount == 1 && current.State == process.StateReminderEmitted
 	})
 	t.Log("reminder observed")
 
@@ -54,7 +54,7 @@ func TestReminderWorkerRestartApprovalAndTerminalRejection(t *testing.T) {
 	t.Log("replacement Worker started")
 	waitFor(t, ctx, func(attemptCtx context.Context) bool {
 		current, getErr := runtime.Processes.Get(attemptCtx, view.FlowID)
-		return getErr == nil && current.State == process.StateWaitingForApproval
+		return getErr == nil && current.State == process.StateReminderEmitted
 	})
 	approved, err := runtime.Processes.Approve(ctx, view.FlowID)
 	if err != nil {
