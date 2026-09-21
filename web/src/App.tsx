@@ -1,6 +1,9 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { approveFlow, createFlow, getFlow } from './api/generated/sdk.gen';
 import type { FlowView, ProcessState } from './api/generated/types.gen';
+import { MockControls } from './MockControls';
+
+const storedFlowID = 'dex-basic-process-flow-id';
 
 const steps: Array<{ state: ProcessState; label: string }> = [
   { state: 'started', label: 'Start process' },
@@ -23,45 +26,114 @@ const stateRank: Record<ProcessState, number> = {
 
 const approvableStates = new Set<ProcessState>(['waiting_for_approval', 'reminder_emitted']);
 
-export function App() {
+type AppProps = { mockMode?: boolean };
+
+function responseMessage(error: unknown, fallback: string) {
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message;
+  }
+  return fallback;
+}
+
+function responseCode(error: unknown) {
+  return error && typeof error === 'object' && 'error' in error && typeof error.error === 'string'
+    ? error.error
+    : '';
+}
+
+export function App({ mockMode = false }: AppProps) {
   const [title, setTitle] = useState('Review the launch checklist');
   const [flow, setFlow] = useState<FlowView>();
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [refreshError, setRefreshError] = useState('');
+  const [refreshPaused, setRefreshPaused] = useState(false);
+  const [busy, setBusy] = useState<'start' | 'approve' | ''>('');
+  const restored = useRef(false);
+
+  const refreshFlow = useCallback(async (flowId: string, resume = false) => {
+    if (resume) setRefreshPaused(false);
+    const response = await getFlow({ path: { flowId } });
+    if (response.data) {
+      setFlow(response.data);
+      setRefreshError('');
+      setRefreshPaused(false);
+      return;
+    }
+    if (responseCode(response.error) === 'unknown_flow') {
+      window.localStorage.removeItem(storedFlowID);
+      setFlow(undefined);
+      setRefreshError('');
+      setRefreshPaused(false);
+      return;
+    }
+    setRefreshError(responseMessage(response.error, 'Unable to refresh the automation.'));
+    setRefreshPaused(true);
+  }, []);
 
   useEffect(() => {
-    if (!flow || flow.state === 'completed') return;
-    const timer = window.setInterval(async () => {
-      const response = await getFlow({ path: { flowId: flow.flowId } });
-      if (response.data) setFlow(response.data);
-    }, 750);
-    return () => window.clearInterval(timer);
+    if (restored.current) return;
+    restored.current = true;
+    const flowId = window.localStorage.getItem(storedFlowID);
+    if (flowId) void refreshFlow(flowId);
+  }, [refreshFlow]);
+
+  useEffect(() => {
+    if (flow) window.localStorage.setItem(storedFlowID, flow.flowId);
   }, [flow]);
+
+  useEffect(() => {
+    if (!flow || flow.state === 'completed' || refreshPaused) return;
+    const timer = window.setInterval(
+      () => void refreshFlow(flow.flowId),
+      mockMode ? 250 : 750,
+    );
+    return () => window.clearInterval(timer);
+  }, [flow, mockMode, refreshFlow, refreshPaused]);
 
   const activeRank = useMemo(() => (flow ? stateRank[flow.state] : -1), [flow]);
 
   async function start(event: FormEvent) {
     event.preventDefault();
-    setBusy(true);
-    setError('');
+    setBusy('start');
+    setActionError('');
+    setRefreshError('');
+    setRefreshPaused(false);
     const response = await createFlow({ body: { title } });
     if (response.data) setFlow(response.data);
-    else setError(response.error?.message ?? 'Unable to start the automation.');
-    setBusy(false);
+    else setActionError(responseMessage(response.error, 'Unable to start the automation.'));
+    setBusy('');
   }
 
   async function approve() {
     if (!flow) return;
-    setBusy(true);
-    setError('');
+    setBusy('approve');
+    setActionError('');
     const response = await approveFlow({ path: { flowId: flow.flowId }, body: { approved: true } });
     if (response.data) setFlow(response.data);
-    else setError(response.error?.message ?? 'Unable to approve the automation.');
-    setBusy(false);
+    else setActionError(responseMessage(response.error, 'Unable to approve the automation.'));
+    setBusy('');
+  }
+
+  function resetUI() {
+    window.localStorage.removeItem(storedFlowID);
+    setFlow(undefined);
+    setActionError('');
+    setRefreshError('');
+    setRefreshPaused(false);
+    setBusy('');
   }
 
   return (
     <main>
+      {mockMode && (
+        <MockControls
+          flow={flow}
+          onFlowChange={setFlow}
+          onPauseRefresh={() => setRefreshPaused(true)}
+          onRefresh={() => flow ? refreshFlow(flow.flowId) : Promise.resolve()}
+          onReset={resetUI}
+        />
+      )}
       <header>
         <p className="eyebrow">SUPERDURABLE DEX</p>
         <h1>Approval automation that survives everything.</h1>
@@ -73,10 +145,16 @@ export function App() {
           <label htmlFor="title">Automation request</label>
           <div className="form-row">
             <input id="title" value={title} maxLength={120} onChange={(event) => setTitle(event.target.value)} />
-            <button disabled={busy || title.trim() === ''} type="submit">Start process</button>
+            <button disabled={busy !== '' || title.trim() === ''} type="submit">{busy === 'start' ? 'Starting…' : 'Start process'}</button>
           </div>
         </form>
-        {error && <p role="alert" className="error">{error}</p>}
+        {actionError && <p role="alert" className="error">{actionError}</p>}
+        {refreshError && (
+          <div role="alert" className="refresh-error">
+            <span>{refreshError}</span>
+            <button className="secondary" type="button" onClick={() => flow && refreshFlow(flow.flowId, true)}>Retry</button>
+          </div>
+        )}
       </section>
 
       {flow && (
@@ -94,7 +172,7 @@ export function App() {
           </ol>
           <div className="actions">
             <p>Reminders emitted: <strong data-testid="reminder-count">{flow.reminderCount}</strong></p>
-            {approvableStates.has(flow.state) && <button disabled={busy} onClick={approve}>Approve</button>}
+            {approvableStates.has(flow.state) && <button disabled={busy !== ''} onClick={approve}>{busy === 'approve' ? 'Approving…' : 'Approve'}</button>}
           </div>
           {flow.result && <p className="result" data-testid="result">{flow.result}</p>}
         </section>

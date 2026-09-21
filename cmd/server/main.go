@@ -34,10 +34,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("create OpenAPI handler: %w", err)
 	}
-	mux := http.NewServeMux()
-	mux.Handle("/api/", apiHandler)
-	mux.Handle("/", staticHandler("web/dist"))
-	server := &http.Server{Addr: ":" + environment("PORT", "8080"), Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+	server := &http.Server{Addr: ":" + environment("PORT", "8080"), Handler: applicationHandler(apiHandler), ReadHeaderTimeout: 5 * time.Second}
 	workerResult := runtime.StartWorker()
 	serverResult := make(chan error, 1)
 	go func() { serverResult <- server.ListenAndServe() }()
@@ -57,6 +54,14 @@ func run() error {
 	shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	return server.Shutdown(shutdown)
+}
+
+func applicationHandler(apiHandler http.Handler) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("/api/", apiHandler)
+	mux.Handle("/__mock__/", http.NotFoundHandler())
+	mux.Handle("/", staticHandler("web/dist"))
+	return mux
 }
 
 func staticHandler(root string) http.Handler {

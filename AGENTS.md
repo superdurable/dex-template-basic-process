@@ -2,7 +2,8 @@
 
 This is a complete Superverse `go-react-v1` application. Read
 `.superverse/template.json`, `openapi/openapi.yaml`, and the local
-`dex-developer` skill before changing Dex behavior.
+`dex-app-builder` skill before changing product behavior. Its pinned upstream
+skill loads the sibling `dex-sdk` Core and Go guidance for backend work.
 
 `openapi/openapi.yaml` is the only HTTP contract source. Never edit files below
 `internal/api/generated` or `web/src/api/generated` by hand. Change the spec,
@@ -28,7 +29,13 @@ or delete a failing check.
 
 Stable commands are `make bootstrap`, `make generate`, `make check-generated`,
 `make check-fdg-v2`, `make test-unit`, `make test-integration`,
-`make test-e2e`, `make build`, `make dev`, and `make check`.
+`make test-e2e`, `make test-mock-e2e`, `make build`, `make dev`, `make mock`,
+and `make check`.
+
+`make mock` is the UI approval loop. It starts the Go in-memory mock API and
+Vite HMR without Dex. Keep the mock implementation behind `cmd/mock-server`
+and `/__mock__`; the production server must return 404 for mock controls.
+Mock verification does not replace the real Dex integration and E2E tests.
 
 When structure, commands, or required tooling changes, update this file,
 `.superverse/template.json`, `README.md`, and contract tests together. Do not
