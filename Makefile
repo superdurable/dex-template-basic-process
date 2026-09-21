@@ -25,7 +25,7 @@ build:
 dev:
 	./scripts/with-dex.sh bash -c 'npm --prefix web run build && go run ./cmd/server'
 check: bootstrap check-generated check-fdg-v2
-	@test -z "$$(gofmt -l $$(find . -name '*.go' -not -path './.agents/*'))" || { gofmt -d $$(gofmt -l $$(find . -name '*.go' -not -path './.agents/*')); exit 1; }
+	@test -z "$$(gofmt -l $$(find . -name '*.go' -not -path './.agents/*' -not -path './upstream-dex/*'))" || { gofmt -d $$(gofmt -l $$(find . -name '*.go' -not -path './.agents/*' -not -path './upstream-dex/*')); exit 1; }
 	go mod tidy -diff
 	go vet ./...
 	$(MAKE) test-unit
