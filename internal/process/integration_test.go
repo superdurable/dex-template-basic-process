@@ -33,12 +33,7 @@ func TestReminderWorkerRestartApprovalAndTerminalRejection(t *testing.T) {
 	})
 	t.Log("Flow is waiting for approval")
 
-	server := os.Getenv("DEX_FLOW_SERVICE_ADDRESS")
-	command := exec.CommandContext(ctx, "dexcli", "flow", "skip-timer", view.FlowID,
-		"-server", server, "-step-type", "process.WaitForApproval", "-condition-id", process.ReminderTimerConditionID, "-yes")
-	if output, skipErr := command.CombinedOutput(); skipErr != nil {
-		t.Fatalf("skip reminder Timer: %v\n%s", skipErr, output)
-	}
+	skipReminderTimer(t, ctx, view.FlowID)
 	t.Log("reminder Timer skipped")
 	waitFor(t, ctx, func(attemptCtx context.Context) bool {
 		current, getErr := runtime.Processes.Get(attemptCtx, view.FlowID)
@@ -131,6 +126,32 @@ func startRuntime(t *testing.T, logger *slog.Logger) *appRuntime.Runtime {
 			t.Fatalf("start Worker: %v", err)
 		case <-deadline.C:
 			t.Fatalf("wait for Worker listener: %v", dialErr)
+		case <-ticker.C:
+		}
+	}
+}
+
+func skipReminderTimer(t *testing.T, ctx context.Context, flowID string) {
+	t.Helper()
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	var lastError error
+	var lastOutput []byte
+	for {
+		attemptCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		command := exec.CommandContext(attemptCtx, "dexcli", "flow", "skip-timer", flowID,
+			"-server", os.Getenv("DEX_FLOW_SERVICE_ADDRESS"), "-step-type", "process.WaitForApproval",
+			"-condition-id", process.ReminderTimerConditionID, "-timeout", "1s", "-yes")
+		output, skipErr := command.CombinedOutput()
+		cancel()
+		if skipErr == nil {
+			return
+		}
+		lastError = skipErr
+		lastOutput = output
+		select {
+		case <-ctx.Done():
+			t.Fatalf("skip reminder Timer before deadline: %v\n%s", lastError, lastOutput)
 		case <-ticker.C:
 		}
 	}
