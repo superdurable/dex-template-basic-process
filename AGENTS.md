@@ -32,6 +32,15 @@ Stable commands are `make bootstrap`, `make generate`, `make check-generated`,
 `make test-e2e`, `make test-mock-e2e`, `make build`, `make dev`, `make mock`,
 and `make check`.
 
+`make bootstrap`, `npm ci`, and `go mod download` may restore dependencies
+already declared by the committed manifests and lockfiles. Before adding or
+upgrading a project dependency, verify that the standard library and existing
+dependencies cannot satisfy explicit requested behavior. Pin the selected
+version, update the manifest and lockfile together, explain why it is needed,
+and run `make check`. Do not add convenience-only dependencies, perform
+unrelated upgrades or audit auto-fixes such as `npm audit fix`, install global
+or operating-system packages, or run remote installation scripts.
+
 `make mock` is the UI approval loop. It starts the Go in-memory mock API and
 Vite HMR without Dex. Keep the mock implementation behind `cmd/mock-server`
 and `/__mock__`; the production server must return 404 for mock controls.
