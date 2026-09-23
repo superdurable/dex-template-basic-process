@@ -8,7 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/ogen-go/ogen v1.24.0
 	github.com/superdurable/dex/blob-cache-go v0.1.0
-	github.com/superdurable/dex/sdk-go v0.10.0
+	github.com/superdurable/dex/sdk-go v0.10.2
 	go.opentelemetry.io/otel v1.46.0
 	go.opentelemetry.io/otel/metric v1.46.0
 	go.opentelemetry.io/otel/trace v1.46.0

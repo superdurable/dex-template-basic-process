@@ -198,6 +198,15 @@ func (flow BasicProcessFlow) GetRPCs() []dex.RPCDef {
 		dex.DefineRPC(flow.GetDexDisplay, nil),
 		dex.DefineRPC(flow.DescribeProcess, &dex.RPCOptions{}),
 		dex.DefineRPC(flow.ApproveProcess, &dex.RPCOptions{
+			Action: dex.DefineAction(
+				"Approve",
+				dex.WhenAttributeMatches(
+					ProcessState,
+					dex.AttributeMatchEqual(string(StateWaitingForApproval)),
+					dex.AttributeMatchEqual(string(StateReminderEmitted)),
+				),
+				dex.ActionRequiresPermission("process.approve"),
+			),
 			IsTransactional: true,
 			LockAttributes: []dex.AttributeLock{
 				dex.LockAttribute(ProcessState),
@@ -263,8 +272,6 @@ func (BasicProcessFlow) DescribeProcess(ctx dex.Context, _ dex.None) (*dex.RPCRe
 	return &dex.RPCResult[Snapshot]{Output: Snapshot{Title: title, State: State(state), ReminderCount: count}}, nil
 }
 
-// dex:action action-label:"Approve"
-// dex:when attribute-key:process-state operator:in values:["waiting_for_approval","reminder_emitted"]
 func (BasicProcessFlow) ApproveProcess(ctx dex.Context, _ dex.None) (*dex.RPCResult[dex.None], error) {
 	state, err := ProcessState.Get(ctx)
 	if err != nil {
