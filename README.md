@@ -91,7 +91,11 @@ accepted fallback.
 The supported sandbox runtime is contract revision 2. It provides Go, Node.js,
 npm, Python 3, an FDG 2.0-capable `dexcli`, Ogen's cached module dependencies,
 and Chromium Headless Shell. JavaScript packages remain pinned by
-`web/package-lock.json`.
+`web/package-lock.json`. `make bootstrap` restores the versions declared by
+the Go module files and npm lockfile; it does not authorize unrelated upgrades.
+Project dependencies must stay pinned in their manifests and lockfiles. The
+sandbox does not support global npm packages, operating-system package
+installation, or remote installer scripts.
 
 ## Dex skills
 
