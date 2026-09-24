@@ -36,7 +36,7 @@ func TestTemplateContract(t *testing.T) {
 	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.11.4" {
 		t.Fatalf("unexpected Dex Server baseline: %q", baseline)
 	}
-	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_WEB_V2_BASELINE"))); baseline != "dex-web-v2/v0.2.0" {
+	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_WEB_V2_BASELINE"))); baseline != "dex-web-v2/v0.3.0" {
 		t.Fatalf("unexpected Dex Web baseline: %q", baseline)
 	}
 	goModule := readFile(t, filepath.Join(root, "go.mod"))
