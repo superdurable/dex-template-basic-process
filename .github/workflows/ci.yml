@@ -22,6 +22,12 @@ jobs:
           repository: superdurable/dex
           ref: ${{ steps.dex-web-v2.outputs.revision }}
           path: upstream-dex
+          fetch-depth: 0
+      - name: Validate released Dex Server baseline
+        shell: bash
+        run: |
+          server_revision="$(git -C upstream-dex rev-parse "$(cat DEX_SERVER_BASELINE)^{commit}")"
+          git -C upstream-dex merge-base --is-ancestor "${server_revision}" HEAD
       - uses: actions/setup-go@v5
         with:
           go-version-file: upstream-dex/cli/go.mod

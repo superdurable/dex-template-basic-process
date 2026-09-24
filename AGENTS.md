@@ -5,6 +5,13 @@ This is a complete Superverse `go-react-v1` application. Read
 `dex-app-builder` skill before changing product behavior. Its pinned upstream
 skill loads the sibling `dex-sdk` Core and Go guidance for backend work.
 
+During product adaptation, first confirm whether the process needs a custom UI.
+If it does not, use Dex Web for process management and retain only a
+non-business Hello World page plus the Go/OpenAPI/React generation skeleton.
+Remove process-management routes, components, mock lifecycle state, and tests.
+Keep only explicitly required integration ingress such as a trigger webhook.
+If a custom UI is required, preserve the full mock-first approval workflow.
+
 `openapi/openapi.yaml` is the only HTTP contract source. Never edit files below
 `internal/api/generated` or `web/src/api/generated` by hand. Change the spec,
 run `make generate`, and update server, UI, integration, and E2E coverage in the

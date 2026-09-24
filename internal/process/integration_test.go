@@ -4,6 +4,7 @@ package process_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
@@ -31,6 +32,7 @@ func TestReminderWorkerRestartApprovalAndTerminalRejection(t *testing.T) {
 		current, getErr := runtime.Processes.Get(attemptCtx, view.FlowID)
 		return getErr == nil && current.State == process.StateWaitingForApproval
 	})
+	waitForFlowPermissionHistory(t, ctx, view.FlowID, "process.approve")
 	t.Log("Flow is waiting for approval")
 
 	skipReminderTimer(t, ctx, view.FlowID)
@@ -69,6 +71,7 @@ func TestReminderWorkerRestartApprovalAndTerminalRejection(t *testing.T) {
 		}
 		return getErr == nil && current.State == process.StateCompleted && current.Result != ""
 	})
+	waitForFlowPermissionHistory(t, ctx, view.FlowID, "process.approve")
 	t.Log("completion observed")
 	if _, err := runtime.Processes.Approve(ctx, view.FlowID); err != process.ErrDuplicateApproval {
 		t.Fatalf("terminal approval error = %v", err)
@@ -152,6 +155,39 @@ func skipReminderTimer(t *testing.T, ctx context.Context, flowID string) {
 		select {
 		case <-ctx.Done():
 			t.Fatalf("skip reminder Timer before deadline: %v\n%s", lastError, lastOutput)
+		case <-ticker.C:
+		}
+	}
+}
+
+func waitForFlowPermissionHistory(t *testing.T, ctx context.Context, flowID string, permission string) {
+	t.Helper()
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	query := fmt.Sprintf("WorkflowId = '%s' AND DexWorkQueuePermissions = '%s'", flowID, permission)
+	var lastError error
+	var lastOutput []byte
+	for {
+		attemptCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		command := exec.CommandContext(attemptCtx, "dexcli", "flow", "search",
+			"-server", os.Getenv("DEX_FLOW_SERVICE_ADDRESS"), "-query", query, "-timeout", "1s")
+		output, searchErr := command.CombinedOutput()
+		cancel()
+		if searchErr == nil {
+			var result struct {
+				Flows []json.RawMessage `json:"flows"`
+			}
+			if decodeErr := json.Unmarshal(output, &result); decodeErr == nil && len(result.Flows) > 0 {
+				return
+			} else if decodeErr != nil {
+				searchErr = decodeErr
+			}
+		}
+		lastError = searchErr
+		lastOutput = output
+		select {
+		case <-ctx.Done():
+			t.Fatalf("find Work Queue permission history before deadline: %v\n%s", lastError, lastOutput)
 		case <-ticker.C:
 		}
 	}
