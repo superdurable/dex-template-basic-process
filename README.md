@@ -24,7 +24,7 @@ Attributes drive list/search and Action eligibility. `GetDexSummary` and
 `GetDexDisplay` provide the read-only Web views, while `ApproveProcess` is a
 native Web v2 Action. Every Step has an FDG 2.0 group and explanation.
 
-The template targets Dex Server `v0.11.4`, Dex Web v2 `v0.2.0`, and the Dex Go
+The template targets Dex Server `v0.11.4`, Dex Web v2 `v0.3.0`, and the Dex Go
 SDK `v0.11.3`. `DEX_SERVER_BASELINE` and `DEX_WEB_V2_BASELINE` pin the runtime
 and rendering releases used by CI.
 
