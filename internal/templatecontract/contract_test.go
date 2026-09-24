@@ -10,14 +10,14 @@ import (
 )
 
 type manifest struct {
-	SchemaVersion                         int               `json:"schemaVersion"`
-	BuildProfile                          string            `json:"buildProfile"`
-	TemplateVersion                       string            `json:"templateVersion"`
-	MinimumSandboxRuntimeContractRevision int               `json:"minimumSandboxRuntimeContractRevision"`
-	OpenAPISpec                           string            `json:"openapiSpec"`
-	AgentInstructions                     string            `json:"agentInstructions"`
-	DexSkill                              string            `json:"dexSkill"`
-	Commands                              map[string]string `json:"commands"`
+	SchemaVersion                       int               `json:"schemaVersion"`
+	BuildProfile                        string            `json:"buildProfile"`
+	TemplateVersion                     string            `json:"templateVersion"`
+	MinimumSandboxImageContractRevision int               `json:"minimumSandboxImageContractRevision"`
+	OpenAPISpec                         string            `json:"openapiSpec"`
+	AgentInstructions                   string            `json:"agentInstructions"`
+	DexSkill                            string            `json:"dexSkill"`
+	Commands                            map[string]string `json:"commands"`
 }
 
 func TestTemplateContract(t *testing.T) {
@@ -30,7 +30,7 @@ func TestTemplateContract(t *testing.T) {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.3.0" || contract.MinimumSandboxRuntimeContractRevision != 2 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.4.0" || contract.MinimumSandboxImageContractRevision != 2 {
 		t.Fatalf("unexpected template identity: %+v", contract)
 	}
 	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.11.4" {

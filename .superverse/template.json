@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "buildProfile": "go-react-v1",
-  "templateVersion": "1.3.0",
-  "minimumSandboxRuntimeContractRevision": 2,
+  "templateVersion": "1.4.0",
+  "minimumSandboxImageContractRevision": 2,
   "openapiSpec": "openapi/openapi.yaml",
   "agentInstructions": "AGENTS.md",
   "dexSkill": ".agents/skills/dex-app-builder/SKILL.md",
