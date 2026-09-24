@@ -30,8 +30,18 @@ func TestTemplateContract(t *testing.T) {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.2.0" || contract.MinimumSandboxRuntimeContractRevision != 2 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.3.0" || contract.MinimumSandboxRuntimeContractRevision != 2 {
 		t.Fatalf("unexpected template identity: %+v", contract)
+	}
+	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.11.4" {
+		t.Fatalf("unexpected Dex Server baseline: %q", baseline)
+	}
+	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_WEB_V2_BASELINE"))); baseline != "dex-web-v2/v0.2.0" {
+		t.Fatalf("unexpected Dex Web baseline: %q", baseline)
+	}
+	goModule := readFile(t, filepath.Join(root, "go.mod"))
+	if !strings.Contains(goModule, "github.com/superdurable/dex/sdk-go v0.11.3") {
+		t.Fatal("template must pin Dex Go SDK v0.11.3")
 	}
 	for _, path := range []string{contract.OpenAPISpec, contract.AgentInstructions, contract.DexSkill} {
 		if _, err := os.Stat(filepath.Join(root, path)); err != nil {

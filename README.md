@@ -24,6 +24,19 @@ Attributes drive list/search and Action eligibility. `GetDexSummary` and
 `GetDexDisplay` provide the read-only Web views, while `ApproveProcess` is a
 native Web v2 Action. Every Step has an FDG 2.0 group and explanation.
 
+The template targets Dex Server `v0.11.4`, Dex Web v2 `v0.2.0`, and the Dex Go
+SDK `v0.11.3`. `DEX_SERVER_BASELINE` and `DEX_WEB_V2_BASELINE` pin the runtime
+and rendering releases used by CI.
+
+Applications that do not need a custom process UI keep only a non-business
+Hello World page and the Go/OpenAPI/React generation skeleton. Dex Web remains
+the complete process-management surface. Remove the template's approval,
+display, status, list, detail, mock-lifecycle, and Action-proxy routes and
+components. A trigger webhook may remain, but it is integration ingress rather
+than a management API. If the process later needs a custom UI, preserve this
+architecture and return to the mock-first approval workflow before wiring new
+production behavior.
+
 ## Start locally
 
 For the fastest UI interaction loop, start the in-memory mock API and Vite HMR:
