@@ -24,9 +24,10 @@ Attributes drive list/search and Action eligibility. `GetDexSummary` and
 `GetDexDisplay` provide the read-only Web views, while `ApproveProcess` is a
 native Web v2 Action. Every Step has an FDG 2.0 group and explanation.
 
-The template targets Dex Server `v0.11.4`, Dex Web v2 `v0.3.0`, and the Dex Go
-SDK `v0.11.3`. `DEX_SERVER_BASELINE` and `DEX_WEB_V2_BASELINE` pin the runtime
-and rendering releases used by CI.
+The template targets Dex Server `v0.12.0`, Dex CLI `v0.12.0`, and the Dex Go
+SDK `v0.11.3`. `DEX_SERVER_BASELINE` and `DEX_CLI_BASELINE` pin the hosted
+runtime and local tooling releases used by CI. Dex Web is embedded in both
+release artifacts rather than published as a separate package.
 
 Applications that do not need a custom process UI keep only a non-business
 Hello World page and the Go/OpenAPI/React generation skeleton. Dex Web remains
@@ -96,7 +97,7 @@ completion, and reset. It does not prove durable execution behavior.
 
 `make check-fdg-v2` validates `internal/process/flow.go` with rendering schema
 2.0 and requires a diagnostic-free graph with `valid: true`. The required
-preview `dexcli` source is pinned in `DEX_WEB_V2_BASELINE`; schema v1 is not an
+preview `dexcli` source is pinned in `DEX_CLI_BASELINE`; schema v1 is not an
 accepted fallback.
 
 `make check` is the required completion gate for coding agents and CI.

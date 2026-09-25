@@ -13,14 +13,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Read Dex Web v2 baseline
-        id: dex-web-v2
+      - name: Read Dex CLI baseline
+        id: dex-cli
         shell: bash
-        run: echo "revision=$(cat DEX_WEB_V2_BASELINE)" >> "$GITHUB_OUTPUT"
+        run: echo "revision=$(cat DEX_CLI_BASELINE)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           repository: superdurable/dex
-          ref: ${{ steps.dex-web-v2.outputs.revision }}
+          ref: ${{ steps.dex-cli.outputs.revision }}
           path: upstream-dex
           fetch-depth: 0
       - name: Validate released Dex Server baseline
@@ -52,7 +52,7 @@ jobs:
           tar -xzf /tmp/temporal-cli.tar.gz -C "$HOME/.local/bin" temporal
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/temporal" --version
-      - name: Build pinned Dex Web v2 CLI
+      - name: Build pinned Dex CLI
         run: |
           npm --prefix upstream-dex/web ci
           npm --prefix upstream-dex/web run check
