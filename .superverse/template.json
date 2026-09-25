@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "buildProfile": "go-react-v1",
-  "templateVersion": "1.4.0",
+  "templateVersion": "1.4.1",
   "minimumSandboxImageContractRevision": 2,
   "openapiSpec": "openapi/openapi.yaml",
   "agentInstructions": "AGENTS.md",
