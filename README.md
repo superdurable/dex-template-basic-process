@@ -24,8 +24,8 @@ Attributes drive list/search and Action eligibility. `GetDexSummary` and
 `GetDexDisplay` provide the read-only Web views, while `ApproveProcess` is a
 native Web v2 Action. Every Step has an FDG 2.0 group and explanation.
 
-The template targets Dex Server `v0.12.0`, Dex CLI `v0.12.0`, and the Dex Go
-SDK `v0.11.3`. `DEX_SERVER_BASELINE` and `DEX_CLI_BASELINE` pin the hosted
+The template targets Dex Server `v0.13.2`, Dex CLI `v0.13.8`, and the Dex Go
+SDK `v0.13.1`. `DEX_SERVER_BASELINE` and `DEX_CLI_BASELINE` pin the hosted
 runtime and local tooling releases used by CI. Dex Web is embedded in both
 release artifacts rather than published as a separate package.
 
@@ -124,3 +124,16 @@ git submodule update --init --recursive
 `dex-sdk` Core and Go guidance for backend implementation. Template maintainers
 update the pin explicitly; generated applications never follow the skill
 repository's `main` branch implicitly.
+
+### Automated dependency maintenance
+
+The **Update Dex dependencies** workflow runs daily and can also be started
+manually from GitHub Actions. It compares the template with the latest stable
+Dex Go SDK, Dex Server, Dex CLI, and published Dex Skills release. When any
+component is newer, the workflow refreshes module locks, release baselines,
+documentation, the template contract, and the pinned skill submodule on the
+fixed `automation/update-dex-dependencies` branch. It then creates or refreshes
+one pull request and explicitly dispatches Template CI.
+
+The updater ignores prereleases and unreleased branches, and it never merges
+its pull request automatically.

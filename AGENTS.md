@@ -48,6 +48,13 @@ and run `make check`. Do not add convenience-only dependencies, perform
 unrelated upgrades or audit auto-fixes such as `npm audit fix`, install global
 or operating-system packages, or run remote installation scripts.
 
+`.github/workflows/update-dex-dependencies.yml` and
+`scripts/update-dex-dependencies.py` own scheduled Dex Go SDK, Dex Server, Dex
+CLI, and Dex Skills release updates. Keep their stable-release checks, fixed
+automation branch, template-version bump, contract updates, and explicit CI
+dispatch aligned. The updater creates or refreshes a pull request; it never
+merges one.
+
 `make mock` is the UI approval loop. It starts the Go in-memory mock API and
 Vite HMR without Dex. Keep the mock implementation behind `cmd/mock-server`
 and `/__mock__`; the production server must return 404 for mock controls.

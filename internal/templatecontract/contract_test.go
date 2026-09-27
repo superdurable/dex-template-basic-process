@@ -30,18 +30,18 @@ func TestTemplateContract(t *testing.T) {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.4.1" || contract.MinimumSandboxImageContractRevision != 2 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.5.0" || contract.MinimumSandboxImageContractRevision != 2 {
 		t.Fatalf("unexpected template identity: %+v", contract)
 	}
-	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.12.0" {
+	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.13.2" {
 		t.Fatalf("unexpected Dex Server baseline: %q", baseline)
 	}
-	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_CLI_BASELINE"))); baseline != "cli-v0.12.0" {
+	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_CLI_BASELINE"))); baseline != "cli-v0.13.8" {
 		t.Fatalf("unexpected Dex CLI baseline: %q", baseline)
 	}
 	goModule := readFile(t, filepath.Join(root, "go.mod"))
-	if !strings.Contains(goModule, "github.com/superdurable/dex/sdk-go v0.11.3") {
-		t.Fatal("template must pin Dex Go SDK v0.11.3")
+	if !strings.Contains(goModule, "github.com/superdurable/dex/sdk-go v0.13.1") {
+		t.Fatal("template must pin Dex Go SDK v0.13.1")
 	}
 	for _, path := range []string{contract.OpenAPISpec, contract.AgentInstructions, contract.DexSkill} {
 		if _, err := os.Stat(filepath.Join(root, path)); err != nil {
@@ -74,8 +74,38 @@ func TestTemplateContract(t *testing.T) {
 		t.Fatalf("read Dex skill submodule pin: %v", err)
 	}
 	fields := strings.Fields(string(output))
-	if len(fields) < 2 || fields[0] != "160000" || fields[1] != "af3c182de5dc4765b1e402da39eabe5fe5a13c38" {
+	if len(fields) < 2 || fields[0] != "160000" || fields[1] != "9fd3760bc8c0438310234889d4bccedb8c9fe1c8" {
 		t.Fatalf("Dex skill is not pinned as a gitlink: %q", output)
+	}
+
+	dependencyUpdater := readFile(t, filepath.Join(root, "scripts", "update-dex-dependencies.py"))
+	for _, required := range []string{
+		"github.com/superdurable/dex/sdk-go",
+		"DEX_SERVER_BASELINE",
+		"DEX_CLI_BASELINE",
+		".agents/skills/dex-app-builder/upstream",
+		"templateVersion",
+		"GITHUB_OUTPUT",
+	} {
+		if !strings.Contains(dependencyUpdater, required) {
+			t.Errorf("Dex dependency updater does not mention %q", required)
+		}
+	}
+	updateWorkflow := readFile(t, filepath.Join(root, ".github", "workflows", "update-dex-dependencies.yml"))
+	for _, required := range []string{
+		"schedule:",
+		"workflow_dispatch:",
+		"pull-requests: write",
+		"automation/update-dex-dependencies",
+		"gh workflow run ci.yml",
+	} {
+		if !strings.Contains(updateWorkflow, required) {
+			t.Errorf("Dex dependency update workflow does not mention %q", required)
+		}
+	}
+	ciWorkflow := readFile(t, filepath.Join(root, ".github", "workflows", "ci.yml"))
+	if !strings.Contains(ciWorkflow, "workflow_dispatch:") {
+		t.Fatal("Template CI must support explicit dispatch from dependency update PRs")
 	}
 }
 
