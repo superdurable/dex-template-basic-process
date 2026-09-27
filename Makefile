@@ -14,6 +14,7 @@ check-fdg-v2:
 	./scripts/check-fdg-v2.sh
 test-unit:
 	go test ./...
+	python3 -m unittest scripts/test_check_template_version.py
 	npm --prefix web test
 test-integration:
 	./scripts/with-dex.sh go test -tags=integration ./...
@@ -29,7 +30,7 @@ dev:
 mock:
 	./scripts/with-mock.sh
 check: bootstrap check-generated check-fdg-v2
-	@test -z "$$(gofmt -l $$(find . -name '*.go' -not -path './.agents/*' -not -path './upstream-dex/*'))" || { gofmt -d $$(gofmt -l $$(find . -name '*.go' -not -path './.agents/*' -not -path './upstream-dex/*')); exit 1; }
+	@test -z "$$(gofmt -l $$(find . -name '*.go' -not -path './upstream-dex/*'))" || { gofmt -d $$(gofmt -l $$(find . -name '*.go' -not -path './upstream-dex/*')); exit 1; }
 	go mod tidy -diff
 	go vet ./...
 	$(MAKE) test-unit

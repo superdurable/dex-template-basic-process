@@ -1,9 +1,10 @@
 # Basic Process Template Instructions
 
 This is a complete Superverse `go-react-v1` application. Read
-`.superverse/template.json`, `openapi/openapi.yaml`, and the local
-`dex-app-builder` skill before changing product behavior. Its pinned upstream
-skill loads the sibling `dex-sdk` Core and Go guidance for backend work.
+`.superverse/template.json`, `openapi/openapi.yaml`, and the platform-provided
+Dex app-builder skill at `/opt/superverse/dex-skills/dex-app-builder/SKILL.md`
+before changing product behavior. The runtime image pins that skill release;
+this repository must not vendor, clone, or initialize a project-local copy.
 
 During product adaptation, first confirm whether the process needs a custom UI.
 If it does not, use Dex Web for process management and retain only a
@@ -50,10 +51,16 @@ or operating-system packages, or run remote installation scripts.
 
 `.github/workflows/update-dex-dependencies.yml` and
 `scripts/update-dex-dependencies.py` own scheduled Dex Go SDK, Dex Server, Dex
-CLI, and Dex Skills release updates. Keep their stable-release checks, fixed
-automation branch, template-version bump, contract updates, and explicit CI
-dispatch aligned. The updater creates or refreshes a pull request; it never
-merges one.
+and Dex CLI release updates. Keep their stable-release checks, fixed automation
+branch, template-version bump, contract updates, and explicit CI dispatch
+aligned. The updater creates or refreshes a pull request; it never merges one.
+
+Every pull request advances `templateVersion` in
+`.superverse/template.json`. After Template CI passes on `main`, CI publishes
+that exact commit as `v<templateVersion>`. Never move or reuse a template tag.
+Dex Skills discovers the release and opens its own baseline pull request. Once
+the matching Dex Skills release exists, Superverse advances both immutable
+release pins in one pull request.
 
 `make mock` is the UI approval loop. It starts the Go in-memory mock API and
 Vite HMR without Dex. Keep the mock implementation behind `cmd/mock-server`

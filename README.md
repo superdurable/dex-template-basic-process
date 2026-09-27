@@ -102,7 +102,7 @@ accepted fallback.
 
 `make check` is the required completion gate for coding agents and CI.
 
-The supported sandbox runtime is contract revision 2. It provides Go, Node.js,
+The supported sandbox runtime is contract revision 3. It provides Go, Node.js,
 npm, Python 3, an FDG 2.0-capable `dexcli`, Ogen's cached module dependencies,
 and Chromium Headless Shell. JavaScript packages remain pinned by
 `web/package-lock.json`. `make bootstrap` restores the versions declared by
@@ -113,27 +113,23 @@ installation, or remote installer scripts.
 
 ## Dex skills
 
-The local `dex-app-builder` and `dex-sdk` entries delegate to one pinned public
-`dex-skills` submodule. Initialize it with:
-
-```bash
-git submodule update --init --recursive
-```
-
-`dex-app-builder` is the product workflow entrypoint and loads the sibling
-`dex-sdk` Core and Go guidance for backend implementation. Template maintainers
-update the pin explicitly; generated applications never follow the skill
-repository's `main` branch implicitly.
+The Coding Sandbox supplies an immutable Dex Skills release at
+`/opt/superverse/dex-skills`. `dex-app-builder/SKILL.md` is the product workflow
+entrypoint and loads the matching `dex-sdk` guidance. Generated projects do not
+contain, initialize, or read a skill submodule.
 
 ### Automated dependency maintenance
 
 The **Update Dex dependencies** workflow runs daily and can also be started
 manually from GitHub Actions. It compares the template with the latest stable
-Dex Go SDK, Dex Server, Dex CLI, and published Dex Skills release. When any
-component is newer, the workflow refreshes module locks, release baselines,
-documentation, the template contract, and the pinned skill submodule on the
-fixed `automation/update-dex-dependencies` branch. It then creates or refreshes
-one pull request and explicitly dispatches Template CI.
+Dex Go SDK, Dex Server, and Dex CLI releases. When any component is newer, the
+workflow refreshes module locks, release baselines, documentation, and the
+template contract on the fixed `automation/update-dex-dependencies` branch. It
+then creates or refreshes one pull request and explicitly dispatches Template
+CI.
 
 The updater ignores prereleases and unreleased branches, and it never merges
-its pull request automatically.
+its pull request automatically. Every merged template change publishes the
+manifest's version as an immutable GitHub release after Template CI passes.
+Dex Skills and Superverse then advance their release pins through separate
+reviewed pull requests.

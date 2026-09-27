@@ -10,10 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SDK_MODULE = "github.com/superdurable/dex/sdk-go"
-SKILL_PATH = ".agents/skills/dex-app-builder/upstream"
-SKILL_ROOT = ROOT / SKILL_PATH
 SEMVER = re.compile(r"^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
-COMMIT = re.compile(r"^[0-9a-f]{40}$")
 
 
 def fail(message: str) -> None:
@@ -37,16 +34,6 @@ def component_tag(
     return f"{prefix}{version}", version, parts
 
 
-def git(*arguments: str, cwd: Path = ROOT) -> str:
-    return subprocess.run(
-        ["git", *arguments],
-        cwd=cwd,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-
-
 def replace_required(path: Path, old: str, new: str) -> None:
     content = path.read_text()
     if old not in content:
@@ -68,9 +55,6 @@ def main() -> None:
     parser.add_argument("--sdk-version", required=True)
     parser.add_argument("--server-tag", required=True)
     parser.add_argument("--cli-tag", required=True)
-    parser.add_argument("--skills-version", required=True)
-    parser.add_argument("--skills-tag", required=True)
-    parser.add_argument("--skills-commit", required=True)
     arguments = parser.parse_args()
 
     latest_sdk, latest_sdk_parts = canonical_version(
@@ -82,17 +66,6 @@ def main() -> None:
     latest_cli_tag, latest_cli, latest_cli_parts = component_tag(
         arguments.cli_tag, "cli-", "Dex CLI tag"
     )
-    latest_skills, latest_skills_parts = canonical_version(
-        arguments.skills_version, "Dex Skills version"
-    )
-    if arguments.skills_tag != latest_skills:
-        fail(
-            "Dex Skills tag must match its version: "
-            f"{arguments.skills_tag} != {latest_skills}"
-        )
-    latest_skills_commit = arguments.skills_commit.lower()
-    if COMMIT.fullmatch(latest_skills_commit) is None:
-        fail(f"Dex Skills commit must be a full SHA: {arguments.skills_commit}")
 
     go_mod = (ROOT / "go.mod").read_text()
     sdk_match = re.search(
@@ -114,15 +87,10 @@ def main() -> None:
         "cli-",
         "current Dex CLI tag",
     )
-    current_skills, current_skills_parts = canonical_version(
-        (SKILL_ROOT / "VERSION").read_text().strip(), "current Dex Skills version"
-    )
-    current_skills_commit = git("rev-parse", "HEAD", cwd=SKILL_ROOT)
 
     sdk_changed = latest_sdk_parts > current_sdk_parts
     server_changed = latest_server_parts > current_server_parts
     cli_changed = latest_cli_parts > current_cli_parts
-    skills_changed = latest_skills_parts > current_skills_parts
     contract_path = ROOT / "internal" / "templatecontract" / "contract_test.go"
     readme_path = ROOT / "README.md"
 
@@ -157,32 +125,7 @@ def main() -> None:
         )
         replace_required(contract_path, current_cli_tag, latest_cli_tag)
 
-    if skills_changed:
-        resolved_skills_commit = git(
-            "rev-parse", f"{arguments.skills_tag}^{{commit}}", cwd=SKILL_ROOT
-        )
-        if resolved_skills_commit != latest_skills_commit:
-            fail(
-                "Dex Skills tag does not resolve to the requested commit: "
-                f"{resolved_skills_commit} != {latest_skills_commit}"
-            )
-        git("checkout", "--detach", latest_skills_commit, cwd=SKILL_ROOT)
-        checked_out_version, _ = canonical_version(
-            (SKILL_ROOT / "VERSION").read_text().strip(),
-            "checked-out Dex Skills version",
-        )
-        if checked_out_version != latest_skills:
-            fail(
-                "checked-out Dex Skills VERSION does not match its release tag: "
-                f"{checked_out_version} != {latest_skills}"
-            )
-        replace_required(contract_path, current_skills_commit, latest_skills_commit)
-    elif latest_skills_parts == current_skills_parts and (
-        latest_skills_commit != current_skills_commit
-    ):
-        fail("the current Dex Skills version is pinned to a different release commit")
-
-    changed = sdk_changed or server_changed or cli_changed or skills_changed
+    changed = sdk_changed or server_changed or cli_changed
     manifest_path = ROOT / ".superverse" / "template.json"
     manifest = json.loads(manifest_path.read_text())
     current_template, current_template_parts = canonical_version(
@@ -211,9 +154,6 @@ def main() -> None:
             "server_latest": latest_server_tag,
             "cli_previous": current_cli_tag,
             "cli_latest": latest_cli_tag,
-            "skills_previous": current_skills,
-            "skills_latest": latest_skills,
-            "skills_pin_outdated": str(skills_changed).lower(),
             "template_previous": current_template.removeprefix("v"),
             "template_latest": next_template.removeprefix("v"),
         }
