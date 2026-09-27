@@ -213,6 +213,7 @@ def main() -> None:
             "cli_latest": latest_cli_tag,
             "skills_previous": current_skills,
             "skills_latest": latest_skills,
+            "skills_pin_outdated": str(skills_changed).lower(),
             "template_previous": current_template.removeprefix("v"),
             "template_latest": next_template.removeprefix("v"),
         }

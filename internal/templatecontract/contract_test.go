@@ -30,7 +30,7 @@ func TestTemplateContract(t *testing.T) {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.5.0" || contract.MinimumSandboxImageContractRevision != 2 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.5.1" || contract.MinimumSandboxImageContractRevision != 2 {
 		t.Fatalf("unexpected template identity: %+v", contract)
 	}
 	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.13.2" {
@@ -74,7 +74,7 @@ func TestTemplateContract(t *testing.T) {
 		t.Fatalf("read Dex skill submodule pin: %v", err)
 	}
 	fields := strings.Fields(string(output))
-	if len(fields) < 2 || fields[0] != "160000" || fields[1] != "9fd3760bc8c0438310234889d4bccedb8c9fe1c8" {
+	if len(fields) < 2 || fields[0] != "160000" || fields[1] != "664a8d1c376fbcdd9d124636699b3fa84770bb0d" {
 		t.Fatalf("Dex skill is not pinned as a gitlink: %q", output)
 	}
 
@@ -85,6 +85,7 @@ func TestTemplateContract(t *testing.T) {
 		"DEX_CLI_BASELINE",
 		".agents/skills/dex-app-builder/upstream",
 		"templateVersion",
+		"skills_pin_outdated",
 		"GITHUB_OUTPUT",
 	} {
 		if !strings.Contains(dependencyUpdater, required) {
@@ -97,6 +98,8 @@ func TestTemplateContract(t *testing.T) {
 		"workflow_dispatch:",
 		"pull-requests: write",
 		"automation/update-dex-dependencies",
+		"gh release view --repo superdurable/dex-skills",
+		"gh pr create",
 		"gh workflow run ci.yml",
 	} {
 		if !strings.Contains(updateWorkflow, required) {
