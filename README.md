@@ -113,10 +113,14 @@ installation, or remote installer scripts.
 
 ## Dex skills
 
-The Coding Sandbox supplies an immutable Dex Skills release at
-`/opt/superverse/dex-skills`. `dex-app-builder/SKILL.md` is the product workflow
-entrypoint and loads the matching `dex-sdk` guidance. Generated projects do not
-contain, initialize, or read a skill submodule.
+Develop this template with the released
+[Dex plugin](https://github.com/superdurable/dex-skills#install) installed in
+the coding-agent host. Invoke `dex-app-builder` as the product workflow
+entrypoint; it loads the matching `dex-sdk` guidance. Superverse Coding Sandbox
+preinstalls a pinned release, while external developers install the plugin in
+Codex, Claude, Cursor, or another Agent Skills client. The template never
+assumes a fixed skill path. Generated projects do not contain, initialize, or
+read a skill submodule.
 
 ### Automated dependency maintenance
 
