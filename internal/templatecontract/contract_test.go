@@ -28,7 +28,7 @@ func TestTemplateContract(t *testing.T) {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.6.0" || contract.MinimumSandboxImageContractRevision != 3 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.6.1" || contract.MinimumSandboxImageContractRevision != 3 {
 		t.Fatalf("unexpected template identity: %+v", contract)
 	}
 	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.13.2" {
@@ -48,6 +48,15 @@ func TestTemplateContract(t *testing.T) {
 	}
 	makefile := readFile(t, filepath.Join(root, "Makefile"))
 	agents := readFile(t, filepath.Join(root, contract.AgentInstructions))
+	readme := readFile(t, filepath.Join(root, "README.md"))
+	for name, contents := range map[string]string{"AGENTS.md": agents, "README.md": readme} {
+		if strings.Contains(contents, "/opt/superverse/dex-skills") {
+			t.Errorf("%s must discover Dex Skills through the coding-agent host", name)
+		}
+	}
+	if !strings.Contains(agents, "`dex-app-builder` skill") {
+		t.Error("AGENTS.md must require the installed dex-app-builder skill")
+	}
 	for _, command := range contract.Commands {
 		target := strings.TrimPrefix(command, "make ")
 		if !strings.Contains(makefile, "\n"+target+":") && !strings.HasPrefix(makefile, target+":") {

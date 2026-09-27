@@ -1,10 +1,12 @@
 # Basic Process Template Instructions
 
-This is a complete Superverse `go-react-v1` application. Read
-`.superverse/template.json`, `openapi/openapi.yaml`, and the platform-provided
-Dex app-builder skill at `/opt/superverse/dex-skills/dex-app-builder/SKILL.md`
-before changing product behavior. The runtime image pins that skill release;
-this repository must not vendor, clone, or initialize a project-local copy.
+This is a complete Dex `go-react-v1` application. Read
+`.superverse/template.json` and `openapi/openapi.yaml`, then load the installed
+`dex-app-builder` skill through the current coding-agent host before changing
+product behavior. Superverse Coding Sandbox preinstalls a pinned Dex Skills
+release; external developers install the released Dex plugin in their coding
+agent. Never assume a fixed skill path. This repository must not vendor, clone,
+or initialize a project-local copy.
 
 During product adaptation, first confirm whether the process needs a custom UI.
 If it does not, use Dex Web for process management and retain only a
