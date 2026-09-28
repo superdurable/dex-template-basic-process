@@ -3,6 +3,7 @@ package templatecontract_test
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -28,7 +29,7 @@ func TestTemplateContract(t *testing.T) {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.6.2" || contract.MinimumSandboxImageContractRevision != 3 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.7.0" || contract.MinimumSandboxImageContractRevision != 3 {
 		t.Fatalf("unexpected template identity: %+v", contract)
 	}
 	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.14.0" {
@@ -57,7 +58,24 @@ func TestTemplateContract(t *testing.T) {
 	if !strings.Contains(agents, "`dex-app-builder` skill") {
 		t.Error("AGENTS.md must require the installed dex-app-builder skill")
 	}
-	for _, command := range contract.Commands {
+	expectedCommands := map[string]string{
+		"bootstrap":       "make bootstrap",
+		"generate":        "make generate",
+		"checkFdgV2":      "make check-fdg-v2",
+		"testUnit":        "make test-unit",
+		"testIntegration": "make test-integration",
+		"testE2E":         "make test-e2e",
+		"build":           "make build",
+		"dev":             "make dev",
+		"check":           "make check",
+	}
+	if len(contract.Commands) != len(expectedCommands) {
+		t.Fatalf("unexpected template commands: %+v", contract.Commands)
+	}
+	for name, command := range expectedCommands {
+		if contract.Commands[name] != command {
+			t.Errorf("template command %q = %q, want %q", name, contract.Commands[name], command)
+		}
 		target := strings.TrimPrefix(command, "make ")
 		if !strings.Contains(makefile, "\n"+target+":") && !strings.HasPrefix(makefile, target+":") {
 			t.Errorf("Makefile does not define %q", target)
@@ -66,9 +84,37 @@ func TestTemplateContract(t *testing.T) {
 			t.Errorf("AGENTS.md does not mention %q", command)
 		}
 	}
-	for _, removedPath := range []string{".gitmodules", ".agents"} {
+	for _, removedPath := range []string{
+		".gitmodules",
+		".agents",
+		"cmd/mock-server",
+		"internal/mockserver",
+		"docs/local-mock.md",
+		"scripts/run-mock-e2e.sh",
+		"scripts/with-mock.sh",
+		"web/src/MockControls.tsx",
+	} {
 		if _, err := os.Stat(filepath.Join(root, removedPath)); !os.IsNotExist(err) {
-			t.Errorf("removed project-local skill path %q still exists", removedPath)
+			t.Errorf("removed template path %q still exists", removedPath)
+		}
+	}
+	gitignore := readFile(t, filepath.Join(root, ".gitignore"))
+	for _, generatedPath := range []string{"/internal/api/generated/", "/web/src/api/generated/"} {
+		if !strings.Contains(gitignore, generatedPath) {
+			t.Errorf(".gitignore must exclude %q", generatedPath)
+		}
+	}
+	gitCheck := exec.Command("git", "rev-parse", "--is-inside-work-tree")
+	gitCheck.Dir = root
+	if err := gitCheck.Run(); err == nil {
+		command := exec.Command("git", "ls-files", "internal/api/generated", "web/src/api/generated")
+		command.Dir = root
+		trackedGenerated, err := command.Output()
+		if err != nil {
+			t.Fatalf("list tracked generated files: %v", err)
+		}
+		if strings.TrimSpace(string(trackedGenerated)) != "" {
+			t.Errorf("generated OpenAPI files must not be tracked:\n%s", trackedGenerated)
 		}
 	}
 

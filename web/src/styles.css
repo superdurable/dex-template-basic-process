@@ -14,12 +14,6 @@ input { flex: 1; min-width: 0; padding: 14px 16px; border: 1px solid #36506d; bo
 button { padding: 13px 18px; border: 0; border-radius: 12px; background: #6ae4c4; color: #06131f; font: inherit; font-weight: 800; cursor: pointer; }
 button:disabled { opacity: .45; cursor: wait; }
 button.secondary { border: 1px solid #48627e; color: #dbe7f5; background: #10243a; }
-.mock-controls { margin-bottom: 36px; padding: 18px 20px; border: 1px dashed #5e83a8; border-radius: 16px; background: rgba(17, 42, 67, .9); }
-.mock-controls summary { color: #6ae4c4; font-weight: 800; cursor: pointer; }
-.mock-controls p, .mock-controls output { color: #aab8cc; font-size: .82rem; }
-.mock-controls code { padding: 2px 5px; border-radius: 5px; background: #07111f; }
-.mock-control-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
-.mock-control-actions button { padding: 9px 12px; font-size: .78rem; }
 .refresh-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; color: #ff9d9d; }
 .refresh-error button { flex: none; }
 .status { padding: 7px 10px; border-radius: 999px; color: #6ae4c4; background: #11372f; font-size: .75rem; text-transform: uppercase; }

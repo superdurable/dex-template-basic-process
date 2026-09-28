@@ -1,7 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { approveFlow, createFlow, getFlow } from './api/generated/sdk.gen';
 import type { FlowView, ProcessState } from './api/generated/types.gen';
-import { MockControls } from './MockControls';
 
 const storedFlowID = 'dex-basic-process-flow-id';
 
@@ -26,8 +25,6 @@ const stateRank: Record<ProcessState, number> = {
 
 const approvableStates = new Set<ProcessState>(['waiting_for_approval', 'reminder_emitted']);
 
-type AppProps = { mockMode?: boolean };
-
 function responseMessage(error: unknown, fallback: string) {
   if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
     return error.message;
@@ -41,7 +38,7 @@ function responseCode(error: unknown) {
     : '';
 }
 
-export function App({ mockMode = false }: AppProps) {
+export function App() {
   const [title, setTitle] = useState('Review the launch checklist');
   const [flow, setFlow] = useState<FlowView>();
   const [actionError, setActionError] = useState('');
@@ -83,12 +80,9 @@ export function App({ mockMode = false }: AppProps) {
 
   useEffect(() => {
     if (!flow || flow.state === 'completed' || refreshPaused) return;
-    const timer = window.setInterval(
-      () => void refreshFlow(flow.flowId),
-      mockMode ? 250 : 750,
-    );
+    const timer = window.setInterval(() => void refreshFlow(flow.flowId), 750);
     return () => window.clearInterval(timer);
-  }, [flow, mockMode, refreshFlow, refreshPaused]);
+  }, [flow, refreshFlow, refreshPaused]);
 
   const activeRank = useMemo(() => (flow ? stateRank[flow.state] : -1), [flow]);
 
@@ -114,26 +108,8 @@ export function App({ mockMode = false }: AppProps) {
     setBusy('');
   }
 
-  function resetUI() {
-    window.localStorage.removeItem(storedFlowID);
-    setFlow(undefined);
-    setActionError('');
-    setRefreshError('');
-    setRefreshPaused(false);
-    setBusy('');
-  }
-
   return (
     <main>
-      {mockMode && (
-        <MockControls
-          flow={flow}
-          onFlowChange={setFlow}
-          onPauseRefresh={() => setRefreshPaused(true)}
-          onRefresh={() => flow ? refreshFlow(flow.flowId) : Promise.resolve()}
-          onReset={resetUI}
-        />
-      )}
       <header>
         <p className="eyebrow">SUPERDURABLE DEX</p>
         <h1>Approval automation that survives everything.</h1>
