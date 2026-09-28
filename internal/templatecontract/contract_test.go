@@ -29,7 +29,7 @@ func TestTemplateContract(t *testing.T) {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.7.2" || contract.MinimumSandboxImageContractRevision != 3 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.7.3" || contract.MinimumSandboxImageContractRevision != 3 {
 		t.Fatalf("unexpected template identity: %+v", contract)
 	}
 	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.14.1" {
@@ -57,6 +57,18 @@ func TestTemplateContract(t *testing.T) {
 	}
 	if !strings.Contains(agents, "`dex-app-builder` skill") {
 		t.Error("AGENTS.md must require the installed dex-app-builder skill")
+	}
+	for name, contents := range map[string]string{"AGENTS.md": agents, "README.md": readme} {
+		contents = strings.Join(strings.Fields(contents), " ")
+		for _, required := range []string{
+			"reproducibility baselines",
+			"newer stable patch release",
+			"without separate user authorization",
+		} {
+			if !strings.Contains(contents, required) {
+				t.Errorf("%s does not document the Dex patch compatibility policy: missing %q", name, required)
+			}
+		}
 	}
 	expectedCommands := map[string]string{
 		"bootstrap":       "make bootstrap",

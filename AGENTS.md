@@ -61,6 +61,14 @@ and run `make check`. Do not add convenience-only dependencies, perform
 unrelated upgrades or audit auto-fixes such as `npm audit fix`, install global
 or operating-system packages, or run remote installation scripts.
 
+Exact Dex Go SDK, Dex Server, and Dex CLI versions in manifests, lockfiles, and
+`DEX_*_BASELINE` files are reproducibility baselines, not compatibility
+ceilings. A coding agent may use a newer stable patch release within the
+currently selected major/minor line without separate user authorization. Keep
+all affected exact pins, lockfiles, documentation, and contract assertions in
+sync, and run `make check`. Do not select a prerelease, downgrade, or cross a
+minor or major version boundary unless the user explicitly requests it.
+
 `.github/workflows/update-dex-dependencies.yml` and
 `scripts/update-dex-dependencies.py` own scheduled Dex Go SDK, Dex Server, Dex
 and Dex CLI release updates. Keep their stable-release checks, fixed automation

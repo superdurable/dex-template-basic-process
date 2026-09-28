@@ -102,6 +102,13 @@ Project dependencies must stay pinned in their manifests and lockfiles. The
 sandbox does not support global npm packages, operating-system package
 installation, or remote installer scripts.
 
+The exact Dex Go SDK, Dex Server, and Dex CLI pins are reproducibility
+baselines, not compatibility ceilings. Coding agents may adopt a newer stable
+patch release on the currently selected major/minor line without separate user
+authorization, provided every affected pin, lockfile, document, and contract
+assertion is updated together and `make check` passes. Prereleases, downgrades,
+and minor or major version changes still require an explicit user request.
+
 ## Dex skills
 
 Develop this template with the released
