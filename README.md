@@ -24,7 +24,7 @@ Attributes drive list/search and Action eligibility. `GetDexSummary` and
 `GetDexDisplay` provide the read-only Web views, while `ApproveProcess` is a
 native Web v2 Action. Every Step has an FDG 2.0 group and explanation.
 
-The template targets Dex Server `v0.13.2`, Dex CLI `v0.13.8`, and the Dex Go
+The template targets Dex Server `v0.14.0`, Dex CLI `v0.14.0`, and the Dex Go
 SDK `v0.13.1`. `DEX_SERVER_BASELINE` and `DEX_CLI_BASELINE` pin the hosted
 runtime and local tooling releases used by CI. Dex Web is embedded in both
 release artifacts rather than published as a separate package.
