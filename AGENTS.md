@@ -22,6 +22,15 @@ run `make generate`, and update server, UI, integration, and E2E coverage in the
 same change. Both generated directories are ignored local build outputs; never
 add them to Git or include them in a pull request.
 
+Use precise domain names. Do not use the case-insensitive stems `runtime` or
+`normaliz` in repository-owned package, directory, file, type, interface,
+method, function, field, parameter, variable, constant, schema, configuration,
+or resource names. Name the concrete execution role or transformation instead,
+such as `TrimWhitespace`, `CanonicalizeURL`, or
+`ValidateAndSortSelections`. Generated and third-party code,
+framework-mandated identifiers, and migration code or tests that must reference
+immutable legacy names are exempt.
+
 The Dex Flow has stable Step, Attribute, Channel, Timer, and RPC identities.
 Keep external effects in `Execute`; `WaitForApproval.WaitFor` only declares the
 approval Channel and reminder Timer. Register every durable primitive in the
