@@ -18,18 +18,10 @@ describe('App', () => {
 
   afterEach(cleanup);
 
-  it('introduces the runnable approval automation without production mock controls', () => {
+  it('introduces the runnable approval automation', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: /approval automation/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /start process/i })).toBeEnabled();
-    expect(screen.queryByText(/mock controls/i)).not.toBeInTheDocument();
-  });
-
-  it('shows the development controls only in mock mode', () => {
-    render(<App mockMode />);
-    expect(screen.getByText(/mock controls/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /fail next start/i })).toBeEnabled();
-    expect(screen.getByRole('button', { name: /reset/i })).toBeEnabled();
   });
 
   it('shows a visible loading state while a process starts', () => {
@@ -54,7 +46,7 @@ describe('App', () => {
       .mockResolvedValueOnce({ data: waitingFlow })
       .mockResolvedValueOnce({ error: { error: 'mock_get_failed', message: 'mock refresh failure' } })
       .mockResolvedValueOnce({ data: waitingFlow });
-    render(<App mockMode />);
+    render(<App />);
     expect(await screen.findByRole('alert')).toHaveTextContent('mock refresh failure');
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
@@ -64,7 +56,7 @@ describe('App', () => {
   it('clears a restored Flow when the restarted server no longer has it', async () => {
     window.localStorage.setItem('dex-basic-process-flow-id', 'process-00000000-0000-4000-8000-000000000000');
     api.getFlow.mockResolvedValue({ error: { error: 'unknown_flow', message: 'flow was not found' } });
-    render(<App mockMode />);
+    render(<App />);
     await waitFor(() => expect(window.localStorage.getItem('dex-basic-process-flow-id')).toBeNull());
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });

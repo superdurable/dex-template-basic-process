@@ -59,7 +59,6 @@ func run() error {
 func applicationHandler(apiHandler http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiHandler)
-	mux.Handle("/__mock__/", http.NotFoundHandler())
 	mux.Handle("/", staticHandler("web/dist"))
 	return mux
 }

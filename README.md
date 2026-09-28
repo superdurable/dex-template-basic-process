@@ -35,24 +35,12 @@ the complete process-management surface. Remove the template's approval,
 display, status, list, detail, mock-lifecycle, and Action-proxy routes and
 components. A trigger webhook may remain, but it is integration ingress rather
 than a management API. If the process later needs a custom UI, preserve this
-architecture and return to the mock-first approval workflow before wiring new
-production behavior.
+architecture, confirm a static wireframe, and then wire the generated client to
+the real Go and Dex backend.
 
 ## Start locally
 
-For the fastest UI interaction loop, start the in-memory mock API and Vite HMR:
-
-```bash
-make bootstrap
-make mock
-```
-
-Open <http://127.0.0.1:8080>. Mock Controls can advance the process, emit a
-reminder, inject the next start/refresh/approval failure, or reset all state.
-The server retains state across browser refreshes and resets it on restart.
-See [Local mock](docs/local-mock.md) for the complete contract.
-
-To run the real Dex Worker and API instead:
+Bootstrap the locked dependencies, then start the real Dex Worker and API:
 
 ```bash
 make bootstrap
@@ -66,16 +54,18 @@ cleans it up on exit.
 
 `openapi/openapi.yaml` is authoritative. Ogen creates the Go server contract in
 `internal/api/generated`; Hey API creates the TypeScript client in
-`web/src/api/generated`.
+`web/src/api/generated`. Both directories are ignored local build outputs.
+`make generate` writes both outputs to a temporary directory and replaces the
+working copies only after both generators succeed.
 
 ```bash
 make generate
-make check-generated
 make check-fdg-v2
 ```
 
-Generated files are committed so a checkout is immediately understandable.
-Never edit them manually.
+Run `make bootstrap` once after a fresh checkout so the locked generators are
+available. Build, test, development, and full-check targets regenerate the
+clients before compiling. Never edit or commit generated files.
 
 ## Verification
 
@@ -83,7 +73,6 @@ Never edit them manually.
 make test-unit
 make test-integration
 make test-e2e
-make test-mock-e2e
 make check
 ```
 
@@ -91,9 +80,11 @@ Integration tests start a real Dex Server with `dexcli dev`. Playwright drives
 the production UI and uses `dexcli flow skip-timer` to exercise the reminder
 branch without waiting fifteen minutes. Every poll has a deadline.
 
-Mock E2E runs the same frontend against the Go in-memory server without Dex.
-It validates loading, failure recovery, reminders, approval, refresh restore,
-completion, and reset. It does not prove durable execution behavior.
+Vitest mocks the generated client for isolated loading, failure, and terminal
+UI states. A test may use Playwright request interception for a browser-only
+edge case, but the template does not ship a mock API, a second business state
+machine, or user-visible Mock Controls. Mock evidence does not prove durable
+execution behavior.
 
 `make check-fdg-v2` validates `internal/process/flow.go` with rendering schema
 2.0 and requires a diagnostic-free graph with `valid: true`. The required

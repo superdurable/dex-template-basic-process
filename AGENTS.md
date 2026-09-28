@@ -11,14 +11,16 @@ or initialize a project-local copy.
 During product adaptation, first confirm whether the process needs a custom UI.
 If it does not, use Dex Web for process management and retain only a
 non-business Hello World page plus the Go/OpenAPI/React generation skeleton.
-Remove process-management routes, components, mock lifecycle state, and tests.
+Remove process-management routes, components, fixtures, and related tests.
 Keep only explicitly required integration ingress such as a trigger webhook.
-If a custom UI is required, preserve the full mock-first approval workflow.
+If a custom UI is required, confirm a static wireframe before connecting the
+generated client to the real Go and Dex backend.
 
 `openapi/openapi.yaml` is the only HTTP contract source. Never edit files below
 `internal/api/generated` or `web/src/api/generated` by hand. Change the spec,
 run `make generate`, and update server, UI, integration, and E2E coverage in the
-same change.
+same change. Both generated directories are ignored local build outputs; never
+add them to Git or include them in a pull request.
 
 The Dex Flow has stable Step, Attribute, Channel, Timer, and RPC identities.
 Keep external effects in `Execute`; `WaitForApproval.WaitFor` only declares the
@@ -37,10 +39,9 @@ After each edit batch, run the narrowest relevant Make target. Before calling
 If `make check` fails or cannot run, report `blocked=true`. Do not weaken, skip,
 or delete a failing check.
 
-Stable commands are `make bootstrap`, `make generate`, `make check-generated`,
-`make check-fdg-v2`, `make test-unit`, `make test-integration`,
-`make test-e2e`, `make test-mock-e2e`, `make build`, `make dev`, `make mock`,
-and `make check`.
+Stable commands are `make bootstrap`, `make generate`, `make check-fdg-v2`,
+`make test-unit`, `make test-integration`, `make test-e2e`, `make build`,
+`make dev`, and `make check`.
 
 `make bootstrap`, `npm ci`, and `go mod download` may restore dependencies
 already declared by the committed manifests and lockfiles. Before adding or
@@ -64,10 +65,11 @@ Dex Skills discovers the release and opens its own baseline pull request. Once
 the matching Dex Skills release exists, Superverse advances both immutable
 release pins in one pull request.
 
-`make mock` is the UI approval loop. It starts the Go in-memory mock API and
-Vite HMR without Dex. Keep the mock implementation behind `cmd/mock-server`
-and `/__mock__`; the production server must return 404 for mock controls.
-Mock verification does not replace the real Dex integration and E2E tests.
+Use Vitest mocks of the generated client for isolated loading, failure, and
+terminal UI states. When a browser-only edge case cannot be reached
+economically, use test-local Playwright request interception. Do not add an
+application mock server, a second business state machine, or user-visible Mock
+Controls. Mock evidence never replaces real Dex integration and E2E tests.
 
 When structure, commands, or required tooling changes, update this file,
 `.superverse/template.json`, `README.md`, and contract tests together. Do not
