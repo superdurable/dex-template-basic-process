@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Super Durable
 // SPDX-License-Identifier: MIT
 
-package runtime
+package worker
 
 import (
 	"context"
@@ -18,14 +18,14 @@ import (
 	"github.com/superdurable/dex/sdk-go/dex"
 )
 
-type Runtime struct {
+type Worker struct {
 	Processes *process.Service
-	worker    *dex.Worker
+	dexWorker *dex.Worker
 	client    *dex.Client
 	cache     *blobcache.Cache
 }
 
-func New(logger *slog.Logger) (*Runtime, error) {
+func New(logger *slog.Logger) (*Worker, error) {
 	if _, err := connectorconfiguration.Load(false); err != nil {
 		return nil, fmt.Errorf("validate connector configuration: %w", err)
 	}
@@ -38,30 +38,30 @@ func New(logger *slog.Logger) (*Runtime, error) {
 		return nil, fmt.Errorf("create Dex blob cache: %w", err)
 	}
 	flowServiceAddress := environment("DEX_FLOW_SERVICE_ADDRESS", "127.0.0.1:8801")
-	worker, err := dex.NewWorker(registry, cache, dex.WorkerOptions{BindAddress: environment("DEX_WORKER_BIND_ADDRESS", "127.0.0.1:8811"), WorkerTarget: dex.WorkerTarget{Address: environment("DEX_WORKER_TARGET", "127.0.0.1:8811")}, FlowServiceAddress: flowServiceAddress, Logger: logger})
+	dexWorker, err := dex.NewWorker(registry, cache, dex.WorkerOptions{BindAddress: environment("DEX_WORKER_BIND_ADDRESS", "127.0.0.1:8811"), WorkerTarget: dex.WorkerTarget{Address: environment("DEX_WORKER_TARGET", "127.0.0.1:8811")}, FlowServiceAddress: flowServiceAddress, Logger: logger})
 	if err != nil {
 		_ = cache.Close()
 		return nil, fmt.Errorf("create Dex Worker: %w", err)
 	}
-	client, err := dex.NewClient(registry, cache, dex.ClientOptions{FlowServiceAddress: flowServiceAddress, WorkerTarget: worker.WorkerTarget(), Logger: logger})
+	client, err := dex.NewClient(registry, cache, dex.ClientOptions{FlowServiceAddress: flowServiceAddress, WorkerTarget: dexWorker.WorkerTarget(), Logger: logger})
 	if err != nil {
-		_ = worker.Stop(context.Background())
+		_ = dexWorker.Stop(context.Background())
 		_ = cache.Close()
 		return nil, fmt.Errorf("create Dex Client: %w", err)
 	}
-	return &Runtime{Processes: process.NewService(client), worker: worker, client: client, cache: cache}, nil
+	return &Worker{Processes: process.NewService(client), dexWorker: dexWorker, client: client, cache: cache}, nil
 }
 
-func (runtime *Runtime) StartWorker() <-chan error {
+func (worker *Worker) Start() <-chan error {
 	result := make(chan error, 1)
-	go func() { result <- runtime.worker.Start() }()
+	go func() { result <- worker.dexWorker.Start() }()
 	return result
 }
 
-func (runtime *Runtime) Close() error {
+func (worker *Worker) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	return errors.Join(runtime.worker.Stop(ctx), runtime.client.Close(), runtime.cache.Close())
+	return errors.Join(worker.dexWorker.Stop(ctx), worker.client.Close(), worker.cache.Close())
 }
 
 func environment(name, fallback string) string {
