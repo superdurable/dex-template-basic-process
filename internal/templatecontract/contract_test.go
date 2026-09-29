@@ -71,7 +71,7 @@ func TestTemplateContract(t *testing.T) {
 		t.Error("AGENTS.md must require the installed dex-app-builder skill")
 	}
 	for name, contents := range map[string]string{"AGENTS.md": agents, "README.md": readme} {
-		for _, required := range []string{"`runtime`", "`normaliz`", "internal/processhost", "make test-unit", "make check"} {
+		for _, required := range []string{"`runtime`", "`normaliz`", "internal/worker", "make test-unit", "make check"} {
 			if !strings.Contains(contents, required) {
 				t.Errorf("%s does not document the concrete naming policy: missing %q", name, required)
 			}

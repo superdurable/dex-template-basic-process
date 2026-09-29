@@ -35,7 +35,7 @@ This prohibition includes aliases, receivers, test helpers, abbreviations that
 retain either stem, and compound names such as `AppRuntime`, `RuntimeManager`,
 or `NormalizeInput`. Renaming must update the package path, declarations,
 imports, callers, and tests together; do not retain compatibility aliases for
-repository-owned names. `internal/processhost` owns the Dex Worker, Client,
+repository-owned names. `internal/worker` owns the Dex Worker, Client,
 and blob cache lifecycle. The Go naming contract in `internal/templatecontract`
 runs with `make test-unit` and `make check`; do not bypass it or add exceptions
 for new repository-owned names.

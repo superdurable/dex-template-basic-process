@@ -14,22 +14,22 @@ import (
 	"time"
 
 	"github.com/superdurable/dex-template-basic-process/internal/process"
-	"github.com/superdurable/dex-template-basic-process/internal/processhost"
+	"github.com/superdurable/dex-template-basic-process/internal/worker"
 )
 
 func TestReminderWorkerRestartApprovalAndTerminalRejection(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	host := startProcessHost(t, logger)
+	worker := startWorker(t, logger)
 	t.Log("first Worker started")
-	view, err := host.Processes.Start(ctx, "Review the launch checklist")
+	view, err := worker.Processes.Start(ctx, "Review the launch checklist")
 	if err != nil {
 		t.Fatalf("start Flow: %v", err)
 	}
 	t.Logf("Flow started: %s", view.FlowID)
 	waitFor(t, ctx, func(attemptCtx context.Context) bool {
-		current, getErr := host.Processes.Get(attemptCtx, view.FlowID)
+		current, getErr := worker.Processes.Get(attemptCtx, view.FlowID)
 		return getErr == nil && current.State == process.StateWaitingForApproval
 	})
 	waitForFlowPermissionHistory(t, ctx, view.FlowID, "process.approve")
@@ -38,22 +38,22 @@ func TestReminderWorkerRestartApprovalAndTerminalRejection(t *testing.T) {
 	skipReminderTimer(t, ctx, view.FlowID)
 	t.Log("reminder Timer skipped")
 	waitFor(t, ctx, func(attemptCtx context.Context) bool {
-		current, getErr := host.Processes.Get(attemptCtx, view.FlowID)
+		current, getErr := worker.Processes.Get(attemptCtx, view.FlowID)
 		return getErr == nil && current.ReminderCount == 1 && current.State == process.StateReminderEmitted
 	})
 	t.Log("reminder observed")
 
-	if err := host.Close(); err != nil {
+	if err := worker.Close(); err != nil {
 		t.Fatalf("stop first Worker: %v", err)
 	}
 	t.Log("first Worker stopped")
-	host = startProcessHost(t, logger)
+	worker = startWorker(t, logger)
 	t.Log("replacement Worker started")
 	waitFor(t, ctx, func(attemptCtx context.Context) bool {
-		current, getErr := host.Processes.Get(attemptCtx, view.FlowID)
+		current, getErr := worker.Processes.Get(attemptCtx, view.FlowID)
 		return getErr == nil && current.State == process.StateReminderEmitted
 	})
-	approved, err := host.Processes.Approve(ctx, view.FlowID)
+	approved, err := worker.Processes.Approve(ctx, view.FlowID)
 	if err != nil {
 		t.Fatalf("approve after Worker restart: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestReminderWorkerRestartApprovalAndTerminalRejection(t *testing.T) {
 	t.Log("approval accepted")
 	lastObservation := ""
 	waitFor(t, ctx, func(attemptCtx context.Context) bool {
-		current, getErr := host.Processes.Get(attemptCtx, view.FlowID)
+		current, getErr := worker.Processes.Get(attemptCtx, view.FlowID)
 		observation := fmt.Sprintf("state=%s result=%q error=%v", current.State, current.Result, getErr)
 		if observation != lastObservation {
 			t.Log(observation)
@@ -73,10 +73,10 @@ func TestReminderWorkerRestartApprovalAndTerminalRejection(t *testing.T) {
 	})
 	waitForFlowPermissionHistory(t, ctx, view.FlowID, "process.approve")
 	t.Log("completion observed")
-	if _, err := host.Processes.Approve(ctx, view.FlowID); err != process.ErrDuplicateApproval {
+	if _, err := worker.Processes.Approve(ctx, view.FlowID); err != process.ErrDuplicateApproval {
 		t.Fatalf("terminal approval error = %v", err)
 	}
-	if err := host.Close(); err != nil {
+	if err := worker.Close(); err != nil {
 		t.Fatalf("stop replacement Worker: %v", err)
 	}
 }
@@ -84,36 +84,36 @@ func TestReminderWorkerRestartApprovalAndTerminalRejection(t *testing.T) {
 func TestDirectApprovalCompletesWithoutReminder(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
-	host := startProcessHost(t, slog.New(slog.NewTextHandler(os.Stderr, nil)))
+	worker := startWorker(t, slog.New(slog.NewTextHandler(os.Stderr, nil)))
 	defer func() {
-		if err := host.Close(); err != nil {
-			t.Errorf("close host: %v", err)
+		if err := worker.Close(); err != nil {
+			t.Errorf("close Worker: %v", err)
 		}
 	}()
-	view, err := host.Processes.Start(ctx, "Approve without a reminder")
+	view, err := worker.Processes.Start(ctx, "Approve without a reminder")
 	if err != nil {
 		t.Fatalf("start Flow: %v", err)
 	}
 	waitFor(t, ctx, func(attemptCtx context.Context) bool {
-		current, getErr := host.Processes.Get(attemptCtx, view.FlowID)
+		current, getErr := worker.Processes.Get(attemptCtx, view.FlowID)
 		return getErr == nil && current.State == process.StateWaitingForApproval
 	})
-	if _, err := host.Processes.Approve(ctx, view.FlowID); err != nil {
+	if _, err := worker.Processes.Approve(ctx, view.FlowID); err != nil {
 		t.Fatalf("approve Flow: %v", err)
 	}
 	waitFor(t, ctx, func(attemptCtx context.Context) bool {
-		current, getErr := host.Processes.Get(attemptCtx, view.FlowID)
+		current, getErr := worker.Processes.Get(attemptCtx, view.FlowID)
 		return getErr == nil && current.State == process.StateCompleted && current.ReminderCount == 0
 	})
 }
 
-func startProcessHost(t *testing.T, logger *slog.Logger) *processhost.Host {
+func startWorker(t *testing.T, logger *slog.Logger) *worker.Worker {
 	t.Helper()
-	host, err := processhost.New(logger)
+	worker, err := worker.New(logger)
 	if err != nil {
-		t.Fatalf("create host: %v", err)
+		t.Fatalf("create Worker: %v", err)
 	}
-	workerResult := host.StartWorker()
+	workerResult := worker.Start()
 	deadline := time.NewTimer(15 * time.Second)
 	defer deadline.Stop()
 	ticker := time.NewTicker(100 * time.Millisecond)
@@ -122,7 +122,7 @@ func startProcessHost(t *testing.T, logger *slog.Logger) *processhost.Host {
 		connection, dialErr := net.DialTimeout("tcp", os.Getenv("DEX_WORKER_TARGET"), 100*time.Millisecond)
 		if dialErr == nil {
 			_ = connection.Close()
-			return host
+			return worker
 		}
 		select {
 		case err := <-workerResult:

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	api "github.com/superdurable/dex-template-basic-process/internal/api"
-	"github.com/superdurable/dex-template-basic-process/internal/processhost"
+	"github.com/superdurable/dex-template-basic-process/internal/worker"
 )
 
 func main() {
@@ -25,17 +25,17 @@ func main() {
 
 func run() error {
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
-	host, err := processhost.New(logger)
+	worker, err := worker.New(logger)
 	if err != nil {
 		return err
 	}
-	defer host.Close()
-	apiHandler, err := api.NewHandler(host.Processes)
+	defer worker.Close()
+	apiHandler, err := api.NewHandler(worker.Processes)
 	if err != nil {
 		return fmt.Errorf("create OpenAPI handler: %w", err)
 	}
 	server := &http.Server{Addr: ":" + environment("PORT", "8080"), Handler: applicationHandler(apiHandler), ReadHeaderTimeout: 5 * time.Second}
-	workerResult := host.StartWorker()
+	workerResult := worker.Start()
 	serverResult := make(chan error, 1)
 	go func() { serverResult <- server.ListenAndServe() }()
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
