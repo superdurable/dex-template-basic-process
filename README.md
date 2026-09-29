@@ -67,6 +67,36 @@ Run `make bootstrap` once after a fresh checkout so the locked generators are
 available. Build, test, development, and full-check targets regenerate the
 clients before compiling. Never edit or commit generated files.
 
+## Hosted release artifacts
+
+`dex-app.yaml` is the checked-in application manifest. It lists every Flow
+Definition source and every exact connector connection used by the whole app;
+it never contains configuration values or credentials. The file uses
+JSON-compatible YAML so release generation has no undeclared parser dependency.
+
+The Superverse build profile runs:
+
+```bash
+make superverse-release-artifacts SUPERVERSE_RELEASE_ARTIFACT_DIR=/tmp/release
+```
+
+The target requires the platform-provided Release, project, source commit, and
+build-profile identities. It renders every declared Flow with FDG 2.0 and emits
+`flow-definitions.json`, `connector-contract.json`,
+`environment-contract.json`, and the exact `dex-app.yaml`. Invalid, duplicate,
+or diagnostic-bearing Flow Definitions fail the Release build. Superverse pins
+the resulting object versions and digests; application secrets are never part
+of these artifacts.
+
+At startup, local development may supply `DEX_CONNECTOR_CONFIG_FILE`. A hosted
+deployment supplies the read-only `SUPERVERSE_CONNECTOR_CONFIG_FILE`, its
+`SUPERVERSE_CONNECTOR_CONFIG_DIGEST`, `PUBLIC_BASE_URL`, and—when the app has
+connector connections—the internal `SUPERVERSE_CONNECTOR_BROKER_URL` plus a
+`SUPERVERSE_CONNECTOR_WORKLOAD_CREDENTIAL_FILE`. Startup fails before the Dex
+Worker begins when the snapshot is missing or its digest differs. The app only
+retains the credential file path; refresh tokens and provider secrets remain in
+the platform broker.
+
 ## Verification
 
 ```bash

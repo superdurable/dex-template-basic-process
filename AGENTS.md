@@ -49,8 +49,14 @@ If `make check` fails or cannot run, report `blocked=true`. Do not weaken, skip,
 or delete a failing check.
 
 Stable commands are `make bootstrap`, `make generate`, `make check-fdg-v2`,
-`make test-unit`, `make test-integration`, `make test-e2e`, `make build`,
-`make dev`, and `make check`.
+`make superverse-release-artifacts`, `make test-unit`,
+`make test-integration`, `make test-e2e`, `make build`, `make dev`, and
+`make check`.
+
+`dex-app.yaml` declares every application Flow source and exact connector
+connection. Update it whenever either set changes. Never put endpoint values,
+tokens, keys, refresh tokens, webhook secrets, or other configuration material
+in this manifest or the generated Release artifacts.
 
 `make bootstrap`, `npm ci`, and `go mod download` may restore dependencies
 already declared by the committed manifests and lockfiles. Before adding or

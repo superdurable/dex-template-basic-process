@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "superverse.dev/dex-app/v1",
+  "application": {
+    "port": 8080,
+    "healthPath": "/healthz"
+  },
+  "flowDefinitions": [
+    {
+      "sourcePath": "internal/process/flow.go"
+    }
+  ],
+  "connectors": []
+}

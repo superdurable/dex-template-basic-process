@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Super Durable
+// SPDX-License-Identifier: MIT
+
 package runtime
 
 import (
@@ -9,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/superdurable/dex-template-basic-process/internal/connectorconfiguration"
 	"github.com/superdurable/dex-template-basic-process/internal/process"
 	"github.com/superdurable/dex/blob-cache-go/blobcache"
 	"github.com/superdurable/dex/sdk-go/dex"
@@ -22,6 +26,9 @@ type Runtime struct {
 }
 
 func New(logger *slog.Logger) (*Runtime, error) {
+	if _, err := connectorconfiguration.Load(false); err != nil {
+		return nil, fmt.Errorf("validate connector configuration: %w", err)
+	}
 	registry, err := dex.NewRegistry([]dex.Flow{process.BasicProcess})
 	if err != nil {
 		return nil, fmt.Errorf("register Basic Process Flow: %w", err)
