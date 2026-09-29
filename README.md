@@ -29,6 +29,14 @@ SDK `v0.13.1`. `DEX_SERVER_BASELINE` and `DEX_CLI_BASELINE` pin the hosted
 runtime and local tooling releases used by CI. Dex Web is embedded in both
 release artifacts rather than published as a separate package.
 
+`internal/processhost` assembles the process service, Dex Worker, Client, and
+blob cache and manages their startup and shutdown through `processhost.Host`.
+Repository-owned names must describe concrete responsibilities. The
+case-insensitive stems `runtime` and `normaliz` are prohibited in names,
+including package paths, types, aliases, receivers, and test helpers. Generated,
+third-party, framework-mandated, and immutable legacy references are exempt.
+Go naming contract tests enforce this rule in `make test-unit` and `make check`.
+
 Applications that do not need a custom process UI keep only a non-business
 Hello World page and the Go/OpenAPI/React generation skeleton. Dex Web remains
 the complete process-management surface. Remove the template's approval,

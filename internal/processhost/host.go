@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Super Durable
 // SPDX-License-Identifier: MIT
 
-package runtime
+package processhost
 
 import (
 	"context"
@@ -18,14 +18,14 @@ import (
 	"github.com/superdurable/dex/sdk-go/dex"
 )
 
-type Runtime struct {
+type Host struct {
 	Processes *process.Service
 	worker    *dex.Worker
 	client    *dex.Client
 	cache     *blobcache.Cache
 }
 
-func New(logger *slog.Logger) (*Runtime, error) {
+func New(logger *slog.Logger) (*Host, error) {
 	if _, err := connectorconfiguration.Load(false); err != nil {
 		return nil, fmt.Errorf("validate connector configuration: %w", err)
 	}
@@ -49,19 +49,19 @@ func New(logger *slog.Logger) (*Runtime, error) {
 		_ = cache.Close()
 		return nil, fmt.Errorf("create Dex Client: %w", err)
 	}
-	return &Runtime{Processes: process.NewService(client), worker: worker, client: client, cache: cache}, nil
+	return &Host{Processes: process.NewService(client), worker: worker, client: client, cache: cache}, nil
 }
 
-func (runtime *Runtime) StartWorker() <-chan error {
+func (host *Host) StartWorker() <-chan error {
 	result := make(chan error, 1)
-	go func() { result <- runtime.worker.Start() }()
+	go func() { result <- host.worker.Start() }()
 	return result
 }
 
-func (runtime *Runtime) Close() error {
+func (host *Host) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	return errors.Join(runtime.worker.Stop(ctx), runtime.client.Close(), runtime.cache.Close())
+	return errors.Join(host.worker.Stop(ctx), host.client.Close(), host.cache.Close())
 }
 
 func environment(name, fallback string) string {

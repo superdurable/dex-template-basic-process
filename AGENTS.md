@@ -22,7 +22,8 @@ run `make generate`, and update server, UI, integration, and E2E coverage in the
 same change. Both generated directories are ignored local build outputs; never
 add them to Git or include them in a pull request.
 
-Use precise domain names. Do not use the case-insensitive stems `runtime` or
+Use precise domain names that describe the concrete responsibility. Do not use
+the case-insensitive stems `runtime` or
 `normaliz` in repository-owned package, directory, file, type, interface,
 method, function, field, parameter, variable, constant, schema, configuration,
 or resource names. Name the concrete execution role or transformation instead,
@@ -30,6 +31,14 @@ such as `TrimWhitespace`, `CanonicalizeURL`, or
 `ValidateAndSortSelections`. Generated and third-party code,
 framework-mandated identifiers, and migration code or tests that must reference
 immutable legacy names are exempt.
+This prohibition includes aliases, receivers, test helpers, abbreviations that
+retain either stem, and compound names such as `AppRuntime`, `RuntimeManager`,
+or `NormalizeInput`. Renaming must update the package path, declarations,
+imports, callers, and tests together; do not retain compatibility aliases for
+repository-owned names. `internal/processhost` owns the Dex Worker, Client,
+and blob cache lifecycle. The Go naming contract in `internal/templatecontract`
+runs with `make test-unit` and `make check`; do not bypass it or add exceptions
+for new repository-owned names.
 
 The Dex Flow has stable Step, Attribute, Channel, Timer, and RPC identities.
 Keep external effects in `Execute`; `WaitForApproval.WaitFor` only declares the

@@ -2,6 +2,10 @@ package templatecontract_test
 
 import (
 	"encoding/json"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -30,7 +34,7 @@ func TestTemplateContract(t *testing.T) {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.8.0" || contract.MinimumSandboxImageContractRevision != 3 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.8.1" || contract.MinimumSandboxImageContractRevision != 3 {
 		t.Fatalf("unexpected template identity: %+v", contract)
 	}
 	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.14.1" {
@@ -65,6 +69,13 @@ func TestTemplateContract(t *testing.T) {
 	}
 	if !strings.Contains(agents, "`dex-app-builder` skill") {
 		t.Error("AGENTS.md must require the installed dex-app-builder skill")
+	}
+	for name, contents := range map[string]string{"AGENTS.md": agents, "README.md": readme} {
+		for _, required := range []string{"`runtime`", "`normaliz`", "internal/processhost", "make test-unit", "make check"} {
+			if !strings.Contains(contents, required) {
+				t.Errorf("%s does not document the concrete naming policy: missing %q", name, required)
+			}
+		}
 	}
 	for name, contents := range map[string]string{"AGENTS.md": agents, "README.md": readme} {
 		contents = strings.Join(strings.Fields(contents), " ")
@@ -173,6 +184,94 @@ func TestTemplateContract(t *testing.T) {
 	} {
 		if !strings.Contains(ciWorkflow, required) {
 			t.Errorf("Template CI does not mention %q", required)
+		}
+	}
+}
+
+func TestGoNamesDescribeConcreteResponsibilities(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", ".."))
+	for _, directory := range []string{"cmd", "internal", "tools"} {
+		err := filepath.WalkDir(filepath.Join(root, directory), func(path string, entry fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if entry.IsDir() && (entry.Name() == "generated" || entry.Name() == "vendor") {
+				return filepath.SkipDir
+			}
+			if entry.IsDir() {
+				checkConcreteName(t, path, entry.Name())
+				return nil
+			}
+			if filepath.Ext(path) != ".go" {
+				return nil
+			}
+			positions := token.NewFileSet()
+			source, err := parser.ParseFile(positions, path, nil, parser.ParseComments)
+			if err != nil {
+				return err
+			}
+			if ast.IsGenerated(source) {
+				return nil
+			}
+			checkConcreteName(t, path, entry.Name())
+			ast.Inspect(source, func(node ast.Node) bool {
+				check := func(identifier *ast.Ident) {
+					checkConcreteName(t, positions.Position(identifier.Pos()).String(), identifier.Name)
+				}
+				// Inspect declarations, not references to third-party identifiers.
+				switch declaration := node.(type) {
+				case *ast.File:
+					check(declaration.Name)
+				case *ast.ImportSpec:
+					if declaration.Name != nil {
+						check(declaration.Name)
+					}
+				case *ast.TypeSpec:
+					check(declaration.Name)
+				case *ast.FuncDecl:
+					check(declaration.Name)
+				case *ast.Field:
+					for _, name := range declaration.Names {
+						check(name)
+					}
+				case *ast.ValueSpec:
+					for _, name := range declaration.Names {
+						check(name)
+					}
+				case *ast.AssignStmt:
+					if declaration.Tok == token.DEFINE {
+						for _, expression := range declaration.Lhs {
+							if name, ok := expression.(*ast.Ident); ok {
+								check(name)
+							}
+						}
+					}
+				case *ast.RangeStmt:
+					if declaration.Tok == token.DEFINE {
+						for _, expression := range []ast.Expr{declaration.Key, declaration.Value} {
+							if name, ok := expression.(*ast.Ident); ok {
+								check(name)
+							}
+						}
+					}
+				case *ast.LabeledStmt:
+					check(declaration.Label)
+				}
+				return true
+			})
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("inspect Go names in %s: %v", directory, err)
+		}
+	}
+}
+
+func checkConcreteName(t *testing.T, location, name string) {
+	t.Helper()
+	for _, stem := range []string{"runtime", "normaliz"} {
+		if strings.Contains(strings.ToLower(name), stem) {
+			t.Errorf("%s: name %q contains prohibited stem %q; name the concrete responsibility", location, name, stem)
 		}
 	}
 }
