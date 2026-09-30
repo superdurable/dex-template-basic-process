@@ -36,9 +36,9 @@ retain either stem, and compound names such as `AppRuntime`, `RuntimeManager`,
 or `NormalizeInput`. Renaming must update the package path, declarations,
 imports, callers, and tests together; do not retain compatibility aliases for
 repository-owned names. `internal/worker` owns the Dex Worker, Client,
-and blob cache lifecycle. The Go naming contract in `internal/templatecontract`
-runs with `make test-unit` and `make check`; do not bypass it or add exceptions
-for new repository-owned names.
+and blob cache lifecycle. The static Go naming check in `tools/checkcontract`
+runs with `make check-contracts` and `make check`; do not bypass it or add
+exceptions for new repository-owned names.
 
 The Dex Flow has stable Step, Attribute, Channel, Timer, and RPC identities.
 Keep external effects in `Execute`; `WaitForApproval.WaitFor` only declares the
@@ -58,7 +58,7 @@ If `make check` fails or cannot run, report `blocked=true`. Do not weaken, skip,
 or delete a failing check.
 
 Stable commands are `make bootstrap`, `make generate`, `make check-fdg-v2`,
-`make superverse-release-artifacts`, `make test-unit`,
+`make check-contracts`, `make superverse-release-artifacts`,
 `make test-integration`, `make test-e2e`, `make build`, `make dev`, and
 `make check`.
 
@@ -97,12 +97,20 @@ Dex Skills discovers the release and opens its own baseline pull request. Once
 the matching Dex Skills release exists, Superverse advances both immutable
 release pins in one pull request.
 
-Use Vitest mocks of the generated client for isolated loading, failure, and
-terminal UI states. When a browser-only edge case cannot be reached
-economically, use test-local Playwright request interception. Do not add an
-application mock server, a second business state machine, or user-visible Mock
-Controls. Mock evidence never replaces real Dex integration and E2E tests.
+Only integration tests that call real dependency APIs are permitted. Never add
+unit tests, isolated component tests, or mock integration tests in any language.
+Go tests must use the `integration` build tag and a real Dex Server. Playwright
+E2E tests must drive the production application backed by real dependencies.
+Do not use mocks, fakes, stubs, simulated providers, or intercepted/fulfilled
+API responses to replace dependencies, including for failure or edge cases.
+Exercise those cases through real dependency APIs or report the coverage gap.
+An integration label or build tag alone does not qualify a test: review its
+actual API calls. Dependency startup failures must fail verification, never
+skip a test or fall back to a mock. Do not restore unit-test targets, frameworks,
+fixtures, or dependencies. `make check-contracts` statically checks repository
+contracts, naming, test placement, and known mocking APIs; it is not a test suite
+and does not replace real integration or E2E evidence.
 
 When structure, commands, or required tooling changes, update this file,
-`.superverse/template.json`, `README.md`, and contract tests together. Do not
-maintain a separate static repository map.
+`.superverse/template.json`, `README.md`, and static contract checks together.
+Do not maintain a separate static repository map.

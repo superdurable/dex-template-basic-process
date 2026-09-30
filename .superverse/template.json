@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "buildProfile": "go-react-v1",
-  "templateVersion": "1.8.1",
+  "templateVersion": "1.8.2",
   "minimumSandboxImageContractRevision": 3,
   "openapiSpec": "openapi/openapi.yaml",
   "applicationManifest": "dex-app.yaml",
@@ -11,7 +11,7 @@
     "generate": "make generate",
     "checkFdgV2": "make check-fdg-v2",
     "releaseArtifacts": "make superverse-release-artifacts",
-    "testUnit": "make test-unit",
+    "checkContracts": "make check-contracts",
     "testIntegration": "make test-integration",
     "testE2E": "make test-e2e",
     "build": "make build",
