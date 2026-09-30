@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -24,10 +25,22 @@ ENVIRONMENT_CONTRACT_SCHEMA = "superverse.dev/environment-contract/v1"
 CONNECTOR_KEYS = {
     "connectionName",
     "connectorId",
+    "modulePath",
     "version",
     "authMethodId",
     "operations",
 }
+OPTIONAL_CONNECTOR_KEYS = {"triggerBindings"}
+MODULE_PATH = re.compile(r"^github\.com/superdurable/dex-connectors-library/connectors/[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)*$")
+CAPABILITY_NAME = re.compile(r"^[a-z][A-Za-z0-9]+$")
+ENVIRONMENT_NAME = re.compile(r"^[A-Z][A-Z0-9_]{0,127}$")
+ENVIRONMENT_KEYS = {"name", "required", "secret", "minLength", "enum"}
+RESERVED_ENVIRONMENT_PREFIXES = ("SUPERVERSE_", "DEX_", "AWS_", "LD_", "GO", "GIT_")
+RESERVED_ENVIRONMENT_NAMES = {
+    "PATH", "HOME", "PORT", "HOST", "NODE_OPTIONS", "SSL_CERT_FILE", "SSL_CERT_DIR",
+    "PUBLIC_BASE_URL", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+}
+CONNECTOR_VERSION = re.compile(r"^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$")
 
 
 def main() -> None:
@@ -159,27 +172,56 @@ def connector_contract(manifest: dict[str, object]) -> list[dict[str, object]]:
     connections: list[dict[str, object]] = []
     connection_names: set[str] = set()
     for entry in manifest["connectors"]:
-        if not isinstance(entry, dict) or set(entry) != CONNECTOR_KEYS:
+        if (not isinstance(entry, dict) or not CONNECTOR_KEYS.issubset(entry)
+                or not set(entry).issubset(CONNECTOR_KEYS | OPTIONAL_CONNECTOR_KEYS)):
             raise SystemExit("each connector entry must use the exact connector contract fields")
-        for key in ("connectionName", "connectorId", "version", "authMethodId"):
+        for key in ("connectionName", "connectorId", "modulePath", "version", "authMethodId"):
             if not isinstance(entry.get(key), str) or not entry[key]:
                 raise SystemExit(f"connector {key} must be a non-empty string")
+        if not MODULE_PATH.fullmatch(entry["modulePath"]):
+            raise SystemExit("connector modulePath must name an exact official connector module")
+        if not CONNECTOR_VERSION.fullmatch(entry["version"]):
+            raise SystemExit("connector version must be an exact stable v-prefixed release")
         operations = entry.get("operations")
         if (not isinstance(operations, list)
-                or not operations
-                or any(not isinstance(value, str) or not value for value in operations)):
-            raise SystemExit("connector operations must be a non-empty string list")
+                or any(not isinstance(value, str) or not CAPABILITY_NAME.fullmatch(value) for value in operations)):
+            raise SystemExit("connector operations must contain exact capability names")
+        trigger_bindings = validated_trigger_bindings(entry.get("triggerBindings", []))
+        if not operations and not trigger_bindings:
+            raise SystemExit("connector must declare an operation or Trigger binding")
         if entry["connectionName"] in connection_names:
             raise SystemExit("connector connectionName values must be unique")
         connection_names.add(entry["connectionName"])
-        connections.append({**entry, "operations": sorted(set(operations))})
+        connections.append({**entry, "operations": sorted(set(operations)), "triggerBindings": trigger_bindings})
     return sorted(connections, key=lambda connection: connection["connectionName"])
+
+
+def validated_trigger_bindings(value: object) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        raise SystemExit("connector triggerBindings must be a list")
+    bindings: list[dict[str, str]] = []
+    identities: set[tuple[str, str]] = set()
+    for binding in value:
+        if not isinstance(binding, dict) or set(binding) != {"triggerName", "bindingName"}:
+            raise SystemExit("Trigger bindings contain only triggerName and bindingName")
+        trigger_name, binding_name = binding["triggerName"], binding["bindingName"]
+        if (not isinstance(trigger_name, str) or not CAPABILITY_NAME.fullmatch(trigger_name)
+                or not isinstance(binding_name, str) or not binding_name.strip()
+                or binding_name != binding_name.strip() or len(binding_name) > 256
+                or any(ord(character) < 32 for character in binding_name)):
+            raise SystemExit("Trigger binding identity is invalid")
+        identity = (trigger_name, binding_name)
+        if identity in identities:
+            raise SystemExit("Trigger binding identities must be unique")
+        identities.add(identity)
+        bindings.append({"triggerName": trigger_name, "bindingName": binding_name})
+    return sorted(bindings, key=lambda binding: (binding["triggerName"], binding["bindingName"]))
 
 
 def environment_contract(manifest: dict[str, object]) -> dict[str, object]:
     application = manifest["application"]
-    if set(application) != {"port", "healthPath"}:
-        raise SystemExit("dex-app.yaml application must contain only port and healthPath")
+    if not {"port", "healthPath"}.issubset(application) or not set(application).issubset({"port", "healthPath", "environment"}):
+        raise SystemExit("dex-app.yaml application must contain port, healthPath, and optional environment declarations")
     port = application.get("port")
     health_path = application.get("healthPath")
     if not isinstance(port, int) or isinstance(port, bool) or port < 1 or port > 65535:
@@ -189,12 +231,51 @@ def environment_contract(manifest: dict[str, object]) -> dict[str, object]:
             or "?" in health_path
             or "#" in health_path):
         raise SystemExit("application healthPath must be an absolute path")
-    return {
+    contract = {
         "port": port,
         "healthPath": health_path,
         "publicBaseUrlRequired": True,
         "connectorConfigurationRequired": bool(manifest["connectors"]),
     }
+    declarations = validated_environment_declarations(application.get("environment", []))
+    if declarations:
+        contract["environment"] = declarations
+    return contract
+
+
+def validated_environment_declarations(value: object) -> list[dict[str, object]]:
+    if not isinstance(value, list) or len(value) > 128:
+        raise SystemExit("application environment must contain at most 128 declarations")
+    declarations: list[dict[str, object]] = []
+    names: set[str] = set()
+    for field in value:
+        if not isinstance(field, dict) or "name" not in field or not set(field).issubset(ENVIRONMENT_KEYS):
+            raise SystemExit("application environment contains only declaration fields; values and defaults are forbidden")
+        name = field["name"]
+        if (not isinstance(name, str) or not ENVIRONMENT_NAME.fullmatch(name) or name in names
+                or name.startswith(RESERVED_ENVIRONMENT_PREFIXES) or name in RESERVED_ENVIRONMENT_NAMES):
+            raise SystemExit("application environment name is invalid, reserved, or duplicated")
+        names.add(name)
+        required, secret = field.get("required", False), field.get("secret", False)
+        minimum = field.get("minLength", 0)
+        options = field.get("enum", [])
+        if (not isinstance(required, bool) or not isinstance(secret, bool)
+                or not isinstance(minimum, int) or isinstance(minimum, bool) or minimum < 0 or minimum > 32768
+                or not isinstance(options, list) or len(options) > 128 or (secret and options)):
+            raise SystemExit("application environment declaration constraints are invalid")
+        for option in options:
+            if not isinstance(option, str) or "\x00" in option or len(option) < minimum:
+                raise SystemExit("application environment enum is invalid")
+            try:
+                encoded = option.encode("utf-8")
+            except UnicodeEncodeError as failure:
+                raise SystemExit("application environment enum must be valid UTF-8") from failure
+            if len(encoded) > 32768:
+                raise SystemExit("application environment enum exceeds the byte limit")
+        if len(set(options)) != len(options):
+            raise SystemExit("application environment enum values must be unique")
+        declarations.append({"enum": sorted(options), "minLength": minimum, "name": name, "required": required, "secret": secret})
+    return sorted(declarations, key=lambda field: field["name"])
 
 
 def safe_relative_path(value: object, label: str) -> str:

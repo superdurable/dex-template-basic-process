@@ -67,6 +67,46 @@ connection. Update it whenever either set changes. Never put endpoint values,
 tokens, keys, refresh tokens, webhook secrets, or other configuration material
 in this manifest or the generated Release artifacts.
 
+Every connector declaration includes the exact official `modulePath`, released
+`version`, `connectionName`, `connectorId`, selected `authMethodId`, `operations`,
+and optional `triggerBindings` pairs containing `triggerName` and `bindingName`.
+Canonical contracts always emit a sorted `triggerBindings` list, including when
+empty. A connection must declare at least one operation or Trigger binding.
+Project Dex Web owns mutable configuration and OAuth before Release creation.
+
+Project deployments use the trusted `DEX_PROJECT_*` scope, versioned storage,
+and immutable configuration-reference contract documented in `README.md`.
+`internal/projectconfiguration.Load(false)` invokes the shared Connector SDK
+`projectconfig.LoadFromEnvironment` and resolves/applies the accepted application
+environment even when the template has no connectors. Keep this startup path
+before all application settings reads, client construction, Worker creation, and
+goroutines. Never read application environment in `init` functions or package
+variable initializers. Use `projectconfig/provider` for typed connector
+credentials when adding connectors. The shared loader verifies the exact
+snapshot version/digest and scoped secret versions; do not duplicate it with a
+platform-downloaded JSON file. These additive APIs are not yet released: local
+verification uses an ignored workspace against the official SDK worktree;
+production build/pin promotion remains blocked until an authorized release.
+Never invent a released pin. Credential refresh occurs only during actual expired use. Do not
+restore a platform broker, periodic refresh, or credentials in Flow state.
+
+`application.environment` declares application-owned startup strings using only
+`name`, `required`, `secret`, `minLength` and `enum`; never add values, defaults or
+secret references to the manifest. Names are unique uppercase ASCII, at most
+128 characters and 128 fields. `required`/`secret` default false, `minLength`
+defaults zero and counts Unicode code points; values are bounded to 32768 UTF-8
+bytes. Secret enums are forbidden. Canonical nonempty declarations include all
+five fields, sort names/enums, and preserve an absent/empty list's existing
+contract. Reject platform/SDK/AWS, process-loader, proxy and toolchain overrides.
+All project deployments, including connector-free applications, use
+`loaded.ResolveApplicationEnvironment(ctx)` and `environment.Apply()` before
+constructing clients or starting any goroutines. Resolve only exact accepted
+secret versions from the same Live/Preview scope; do not copy plaintext values
+into Flow state or generated artifacts. Startup errors must not trigger fallback
+to development credentials. DeleteLive preserves accepted values; final scope
+removal deletes them. Reauthorization, credential refresh, and application
+secret replacement are distinct operations with their own existing owners.
+
 `make bootstrap`, `npm ci`, and `go mod download` may restore dependencies
 already declared by the committed manifests and lockfiles. Before adding or
 upgrading a project dependency, verify that the standard library and existing

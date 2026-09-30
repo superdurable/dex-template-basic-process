@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/superdurable/dex-template-basic-process/internal/connectorconfiguration"
 	"github.com/superdurable/dex-template-basic-process/internal/process"
+	"github.com/superdurable/dex-template-basic-process/internal/projectconfiguration"
 	"github.com/superdurable/dex/blob-cache-go/blobcache"
 	"github.com/superdurable/dex/sdk-go/dex"
 )
@@ -26,8 +26,8 @@ type Worker struct {
 }
 
 func New(logger *slog.Logger) (*Worker, error) {
-	if _, err := connectorconfiguration.Load(false); err != nil {
-		return nil, fmt.Errorf("validate connector configuration: %w", err)
+	if _, err := projectconfiguration.Load(false); err != nil {
+		return nil, fmt.Errorf("load project configuration: %w", err)
 	}
 	registry, err := dex.NewRegistry([]dex.Flow{process.BasicProcess})
 	if err != nil {

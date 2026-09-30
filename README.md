@@ -96,14 +96,132 @@ or diagnostic-bearing Flow Definitions fail the Release build. Superverse pins
 the resulting object versions and digests; application secrets are never part
 of these artifacts.
 
-At startup, local development may supply `DEX_CONNECTOR_CONFIG_FILE`. A hosted
-deployment supplies the read-only `SUPERVERSE_CONNECTOR_CONFIG_FILE`, its
-`SUPERVERSE_CONNECTOR_CONFIG_DIGEST`, `PUBLIC_BASE_URL`, and—when the app has
-connector connections—the internal `SUPERVERSE_CONNECTOR_BROKER_URL` plus a
-`SUPERVERSE_CONNECTOR_WORKLOAD_CREDENTIAL_FILE`. Startup fails before the Dex
-Worker begins when the snapshot is missing or its digest differs. The app only
-retains the credential file path; refresh tokens and provider secrets remain in
-the platform broker.
+Project Dex Web owns connector configuration and OAuth. Configure named
+connections and declared Trigger bindings before building a Release; deployment
+then selects an exact immutable configuration snapshot. The application
+Connector SDK resolves current credentials during actual use and refreshes only
+when a known expiry has elapsed. No platform credential broker is required.
+
+At startup, local development may supply `DEX_CONNECTOR_CONFIG_FILE`.
+A project deployment supplies the following trusted `DEX_PROJECT_*` environment contract:
+
+| Variable | Meaning |
+| --- | --- |
+| `DEX_PROJECT_ID` | Fixed project identity. |
+| `DEX_PROJECT_SCOPE` | `live` or `preview`. |
+| `DEX_PROJECT_SESSION_ID` | Required only for Preview. |
+| `DEX_PROJECT_CONFIG_KEY` | `projects/<projectID>/live/configuration/head`, or `projects/<projectID>/preview/<sessionID>/configuration/head`. |
+| `DEX_PROJECT_CONFIG_VERSION` | Exact immutable object version accepted by Dex Web. |
+| `DEX_PROJECT_CONFIG_DIGEST` | `sha256:<hex>` over the exact configuration bytes. |
+| `DEX_PROJECT_STORAGE_BUCKET` | Private versioned project bucket. |
+| `DEX_PROJECT_STORAGE_PREFIX` | Optional fixed environment prefix. |
+| `DEX_PROJECT_STORAGE_KMS_KEY_ARN` | Exact hosted KMS key ARN. |
+| `PUBLIC_BASE_URL` | The actual application Preview or Live URL. |
+
+AWS region and identity come from the standard AWS environment/credential chain.
+Isolated local fixtures additionally set `DEX_PROJECT_ALLOW_LOCAL_STORAGE=true`
+and `DEX_PROJECT_STORAGE_ENDPOINT` to a local MinIO endpoint. Hosted deployments
+omit both. Scope, key, version, digest format, and storage boundary are validated
+before the Worker starts. Local and project configuration cannot be combined;
+obsolete platform broker environment variables are rejected.
+
+This template declares no connectors or application environment fields, but all
+project deployments use one shared application loader. At the beginning of
+`worker.New`, `internal/projectconfiguration.Load(false)` calls
+`projectconfig.LoadFromEnvironment`, resolves the accepted application
+environment and applies it before creating any Dex Client, Worker, service or
+goroutine. The shared loader verifies the exact object version, digest and
+scope; it never reads a mutable configuration head or refreshes a credential at
+startup. Missing or invalid accepted objects fail startup.
+
+The Connector SDK dependency is needed for this actual bootstrap, including
+connector-free apps with ordinary values and secrets. The tracked `sdkgo
+v0.14.2` is a real published baseline, but it does not yet contain these additive
+APIs. Local development uses an ignored workspace containing the official SDK
+worktree. Production builds and the required standalone `make check` remain
+blocked until the authorized upstream release and exact dependency promotion;
+no unpublished version or committed local replacement is presented as released.
+Use `projectconfig/provider` for typed connector credential resolution, preserving
+complete renewal material. Never put credentials in Flow state, logs or browser
+responses.
+
+Applications may declare ordinary and secret startup strings in
+`application.environment`. Declarations contain names and constraints only:
+
+```json
+{
+  "application": {
+    "port": 8080,
+    "healthPath": "/healthz",
+    "environment": [
+      {"name": "APP_ENV", "required": true, "enum": ["development", "production"]},
+      {"name": "EVENT_TOKEN_SECRET", "required": true, "secret": true, "minLength": 32}
+    ]
+  }
+}
+```
+
+This is an extension example; the checked-in template has no such fields.
+Project Dex Web collects values before a Release exists. Ordinary values enter
+its immutable configuration snapshot; secret values remain in encrypted scoped
+objects referenced by exact key, version and digest. The application consumes
+only the accepted versions. Replacing a secret affects a newly accepted
+configuration; it does not silently rotate a running application. Removing
+Live preserves these objects, while final project/scope deletion cleans them.
+
+Names are unique uppercase ASCII identifiers, at most 128 characters. There are
+at most 128 fields. `required` and `secret` default to false; `minLength` defaults
+to zero and counts Unicode code points. Values are limited to 32768 UTF-8 bytes,
+with no NUL characters. `enum` is an optional unique string list and is forbidden
+for secret fields. Missing required values fail validation; an explicitly empty
+string is permitted only when its other constraints allow it. Values, defaults,
+and secret references never belong in the manifest or generated Release
+artifacts. Infrastructure and process-control variables—including `DEX_*`,
+`AWS_*`, `SUPERVERSE_*`, `PUBLIC_BASE_URL`, proxy overrides and loader/toolchain
+settings—are reserved. The generator canonicalizes every nonempty declaration
+list by name, sorts enums, and emits all five declaration fields. An absent or
+empty list leaves the existing empty environment contract unchanged.
+
+The template's project startup boundary already uses the shared loader, including
+when there are no connectors. Apps adding clients retain the same startup order:
+resolve all values and call `environment.Apply()` before reading application
+settings, constructing clients, starting Workers or launching goroutines. Never
+read application settings in `init` functions or package variable initializers:
+
+
+```go
+func loadProjectStartup(ctx context.Context) (*projectconfig.LoadedProject, error) {
+    loaded, err := projectconfig.LoadFromEnvironment(ctx)
+    if err != nil {
+        return nil, err
+    }
+    environment, err := loaded.ResolveApplicationEnvironment(ctx)
+    if err != nil {
+        return nil, err
+    }
+    if err := environment.Apply(); err != nil {
+        return nil, err
+    }
+    return loaded, nil
+}
+```
+
+Use `loaded.Configuration` for immutable connection/Trigger/operation settings
+and `loaded.Connections` for current credential resolution. Neither resolved
+application values nor credentials may enter Flow state, logs or browser DTOs.
+Missing or invalid project configuration must fail startup rather than falling
+back to development credentials. Preserve a deliberate, separate local
+configuration path for development. Production pinning of these additive APIs
+waits for their authorized SDK release; do not invent an unreleased version.
+
+Every connector declaration includes `modulePath`, the exact released `version`,
+`connectionName`, `connectorId`, selected `authMethodId`, `operations`, and
+optional `triggerBindings` containing only `triggerName`/`bindingName` pairs.
+`modulePath` names an official connector-library module; the application does
+not derive it from a connector ID. The generator always emits `triggerBindings`
+(including an empty list), sorted by trigger and binding name. At least one
+operation or Trigger binding is required. Configuration values and credentials
+remain outside `dex-app.yaml` and Release artifacts.
 
 ## Verification
 

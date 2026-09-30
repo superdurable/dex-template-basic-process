@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Super Durable
+// SPDX-License-Identifier: MIT
+
 package templatecontract_test
 
 import (
@@ -34,7 +37,7 @@ func TestTemplateContract(t *testing.T) {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.8.1" || contract.MinimumSandboxImageContractRevision != 3 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.9.0" || contract.MinimumSandboxImageContractRevision != 3 {
 		t.Fatalf("unexpected template identity: %+v", contract)
 	}
 	if baseline := strings.TrimSpace(readFile(t, filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.14.1" {
@@ -88,6 +91,16 @@ func TestTemplateContract(t *testing.T) {
 				t.Errorf("%s does not document the Dex patch compatibility policy: missing %q", name, required)
 			}
 		}
+	}
+	for name, contents := range map[string]string{"AGENTS.md": agents, "README.md": readme} {
+		for _, required := range []string{"DEX_PROJECT_*", "projectconfig.LoadFromEnvironment", "projectconfig/provider", "modulePath", "triggerBindings", "application.environment", "ResolveApplicationEnvironment(ctx)", "environment.Apply()"} {
+			if !strings.Contains(contents, required) {
+				t.Errorf("%s lacks project configuration guidance %q", name, required)
+			}
+		}
+	}
+	if !strings.Contains(goModule, "github.com/superdurable/dex-connectors-library/sdkgo v0.14.2") {
+		t.Error("application startup must declare the shared project configuration SDK baseline")
 	}
 	expectedCommands := map[string]string{
 		"bootstrap":        "make bootstrap",
@@ -160,30 +173,6 @@ func TestTemplateContract(t *testing.T) {
 	} {
 		if !strings.Contains(dependencyUpdater, required) {
 			t.Errorf("Dex dependency updater does not mention %q", required)
-		}
-	}
-	updateWorkflow := readFile(t, filepath.Join(root, ".github", "workflows", "update-dex-dependencies.yml"))
-	for _, required := range []string{
-		"schedule:",
-		"workflow_dispatch:",
-		"pull-requests: write",
-		"automation/update-dex-dependencies",
-		"gh pr create",
-		"gh workflow run ci.yml",
-	} {
-		if !strings.Contains(updateWorkflow, required) {
-			t.Errorf("Dex dependency update workflow does not mention %q", required)
-		}
-	}
-	ciWorkflow := readFile(t, filepath.Join(root, ".github", "workflows", "ci.yml"))
-	for _, required := range []string{
-		"workflow_dispatch:",
-		"scripts/check-template-version.py",
-		"gh release create",
-		"contents: write",
-	} {
-		if !strings.Contains(ciWorkflow, required) {
-			t.Errorf("Template CI does not mention %q", required)
 		}
 	}
 }

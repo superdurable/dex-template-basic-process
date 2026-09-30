@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import os
 from pathlib import Path
 import subprocess
@@ -15,6 +16,9 @@ from unittest import mock
 
 SCRIPT = Path(__file__).with_name("generate-release-artifacts.py")
 ROOT = SCRIPT.parents[1]
+SPEC = importlib.util.spec_from_file_location("release_artifacts", SCRIPT)
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
 
 
 class GenerateReleaseArtifactsTest(unittest.TestCase):
@@ -62,6 +66,84 @@ class GenerateReleaseArtifactsTest(unittest.TestCase):
                 (output / "dex-app.yaml").read_bytes(),
                 (ROOT / "dex-app.yaml").read_bytes(),
             )
+
+    def test_connector_contract_canonicalizes_explicit_trigger_bindings(self) -> None:
+        connection = self.connection()
+        connection["triggerBindings"] = [
+            {"triggerName": "checkoutSessionUpdated", "bindingName": "second"},
+            {"triggerName": "checkoutSessionUpdated", "bindingName": "first"},
+        ]
+        contract = MODULE.connector_contract({"connectors": [connection]})[0]
+        self.assertEqual(contract["modulePath"], connection["modulePath"])
+        self.assertEqual([binding["bindingName"] for binding in contract["triggerBindings"]], ["first", "second"])
+        self.assertEqual(contract["operations"], ["createACHCheckoutSession", "getCheckoutSession"])
+        connection.pop("triggerBindings")
+        self.assertEqual(MODULE.connector_contract({"connectors": [connection]})[0]["triggerBindings"], [])
+        connection["operations"] = []
+        connection["triggerBindings"] = [{"triggerName": "checkoutSessionUpdated", "bindingName": "payments"}]
+        self.assertEqual(MODULE.connector_contract({"connectors": [connection]})[0]["operations"], [])
+
+    def test_connector_contract_rejects_unsafe_or_ambiguous_declarations(self) -> None:
+        cases = [
+            {"modulePath": "github.com/untrusted/stripe"},
+            {"modulePath": "github.com/superdurable/dex-connectors-library/connectors/../stripe"},
+            {"version": "main"},
+            {"operations": [], "triggerBindings": []},
+            {"triggerBindings": [{"triggerName": "checkoutSessionUpdated", "bindingName": "payments", "configuration": {"secret": "forbidden"}}]},
+            {"triggerBindings": [{"triggerName": "checkoutSessionUpdated", "bindingName": "payments"}] * 2},
+        ]
+        for patch in cases:
+            with self.subTest(patch=patch), self.assertRaises(SystemExit):
+                MODULE.connector_contract({"connectors": [{**self.connection(), **patch}]})
+        missing_module = self.connection()
+        missing_module.pop("modulePath")
+        with self.assertRaises(SystemExit):
+            MODULE.connector_contract({"connectors": [missing_module]})
+
+    @staticmethod
+    def connection() -> dict[str, object]:
+        return {
+            "connectorId": "stripe", "connectionName": "payments",
+            "modulePath": "github.com/superdurable/dex-connectors-library/connectors/stripe",
+            "version": "v0.2.2", "authMethodId": "stripe-secret-key-webhook",
+            "operations": ["getCheckoutSession", "createACHCheckoutSession", "getCheckoutSession"],
+        }
+
+    def test_environment_declarations_are_canonical_and_value_free(self) -> None:
+        manifest = {"connectors": [], "application": {"port": 8080, "healthPath": "/healthz", "environment": [
+            {"name": "EVENT_TOKEN_SECRET", "secret": True, "required": True, "minLength": 32},
+            {"name": "APP_ENV", "enum": ["production", "development"]},
+        ]}}
+        contract = MODULE.environment_contract(manifest)
+        self.assertEqual(contract["environment"], [
+            {"enum": ["development", "production"], "minLength": 0, "name": "APP_ENV", "required": False, "secret": False},
+            {"enum": [], "minLength": 32, "name": "EVENT_TOKEN_SECRET", "required": True, "secret": True},
+        ])
+        manifest["application"]["environment"] = []
+        self.assertNotIn("environment", MODULE.environment_contract(manifest))
+        manifest["application"].pop("environment")
+        self.assertNotIn("environment", MODULE.environment_contract(manifest))
+
+    def test_environment_declarations_reject_values_process_control_and_ambiguity(self) -> None:
+        cases = [
+            [{"name": "TOKEN", "value": "private"}], [{"name": "TOKEN", "default": "private"}],
+            [{"name": "TOKEN", "secretRef": {}}], [{"name": "TOKEN"}, {"name": "TOKEN"}],
+            [{"name": "TOKEN", "secret": True, "enum": ["private"]}],
+            [{"name": "TOKEN", "required": 1}], [{"name": "TOKEN", "minLength": True}],
+            [{"name": "TOKEN", "minLength": -1}], [{"name": "TOKEN", "minLength": 32769}],
+            [{"name": "TOKEN", "enum": ["a", "a"]}], [{"name": "TOKEN", "enum": ["\x00"]}],
+            [{"name": "TOKEN", "enum": ["\ud800"]}], [{"name": "TOKEN", "minLength": 2, "enum": ["a"]}],
+            [{"name": "TOKEN", "enum": ["x" * 32769]}], [{"name": "TOKEN", "enum": [1]}],
+            [{"name": "TOKEN", "enum": None}], [{"name": "A" * 129}],
+            [{"name": "FIELD_" + str(index)} for index in range(129)],
+        ]
+        for name in ["DEX_PROJECT_ID", "AWS_ACCESS_KEY_ID", "SUPERVERSE_PLATFORM", "LD_PRELOAD", "GODEBUG", "GIT_CONFIG_COUNT", "PATH", "HOME", "PORT", "HOST", "NODE_OPTIONS", "SSL_CERT_FILE", "SSL_CERT_DIR", "PUBLIC_BASE_URL", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"]:
+            cases.append([{"name": name}])
+        for declarations in cases:
+            with self.subTest(declarations=declarations), self.assertRaises(SystemExit):
+                MODULE.validated_environment_declarations(declarations)
+        # Unicode minima count code points; the independent storage bound counts UTF-8 bytes.
+        self.assertEqual(MODULE.validated_environment_declarations([{"name": "LABEL", "minLength": 2, "enum": ["中文"]}])[0]["enum"], ["中文"])
 
     def test_rejects_a_missing_release_identity(self) -> None:
         with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(

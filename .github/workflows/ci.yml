@@ -17,6 +17,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Validate template repository maintenance
+        run: python3 .github/scripts/check-template-maintenance.py
       - name: Validate template version
         id: template_version
         env:
