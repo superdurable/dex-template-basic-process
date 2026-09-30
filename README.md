@@ -35,7 +35,8 @@ Repository-owned names must describe concrete responsibilities. The
 case-insensitive stems `runtime` and `normaliz` are prohibited in names,
 including package paths, types, aliases, receivers, and test helpers. Generated,
 third-party, framework-mandated, and immutable legacy references are exempt.
-Go naming contract tests enforce this rule in `make test-unit` and `make check`.
+Static checks in `tools/checkcontract` enforce this rule in
+`make check-contracts` and `make check`.
 
 Applications that do not need a custom process UI keep only a non-business
 Hello World page and the Go/OpenAPI/React generation skeleton. Dex Web remains
@@ -108,7 +109,7 @@ the platform broker.
 ## Verification
 
 ```bash
-make test-unit
+make check-contracts
 make test-integration
 make test-e2e
 make check
@@ -116,13 +117,22 @@ make check
 
 Integration tests start a real Dex Server with `dexcli dev`. Playwright drives
 the production UI and uses `dexcli flow skip-timer` to exercise the reminder
-branch without waiting fifteen minutes. Every poll has a deadline.
+branch without waiting fifteen minutes. Every poll has a deadline. Go
+integration tests disable result caching so each run calls the real Dex APIs.
 
-Vitest mocks the generated client for isolated loading, failure, and terminal
-UI states. A test may use Playwright request interception for a browser-only
-edge case, but the template does not ship a mock API, a second business state
-machine, or user-visible Mock Controls. Mock evidence does not prove durable
-execution behavior.
+Only integration tests that call real dependency APIs are permitted, including
+the Playwright E2E journey against the production application. Unit tests,
+isolated component tests, mock integration tests, fakes, stubs, and Playwright
+API-response interception are prohibited, including for failure and edge cases.
+Exercise those cases through real dependency APIs or report the coverage gap.
+An integration label alone is insufficient. Missing dependencies fail the
+check; tests must never skip or fall back to mocks. Do not add unit-test
+frameworks, fixtures, or dependencies.
+
+`make check-contracts` validates the template manifest, Go naming, test
+placement, and known mocking APIs through static source inspection. It is
+separate from API tests and does not prove dependency behavior. The dependency
+updater keeps its release assertions in `tools/checkcontract/main.go`.
 
 `make check-fdg-v2` validates `internal/process/flow.go` with rendering schema
 2.0 and requires a diagnostic-free graph with `valid: true`. The required

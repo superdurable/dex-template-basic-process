@@ -91,7 +91,7 @@ def main() -> None:
     sdk_changed = latest_sdk_parts > current_sdk_parts
     server_changed = latest_server_parts > current_server_parts
     cli_changed = latest_cli_parts > current_cli_parts
-    contract_path = ROOT / "internal" / "templatecontract" / "contract_test.go"
+    contract_path = ROOT / "tools" / "checkcontract" / "main.go"
     readme_path = ROOT / "README.md"
 
     if sdk_changed:

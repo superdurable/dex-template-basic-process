@@ -84,9 +84,9 @@ jobs:
             README.md \
             go.mod \
             go.sum \
-            internal/templatecontract/contract_test.go
+            tools/checkcontract/main.go
           git diff --cached --check
-          go test ./internal/templatecontract
+          make check-contracts
       - name: Create or update dependency pull request
         if: steps.update.outputs.changed == 'true'
         shell: bash
