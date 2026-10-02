@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -24,6 +25,7 @@ ENVIRONMENT_CONTRACT_SCHEMA = "superverse.dev/environment-contract/v1"
 CONNECTOR_KEYS = {
     "connectionName",
     "connectorId",
+    "modulePath",
     "version",
     "authMethodId",
     "operations",
@@ -165,21 +167,43 @@ def render_flow_definitions(
 def connector_contract(manifest: dict[str, object]) -> list[dict[str, object]]:
     connections: list[dict[str, object]] = []
     connection_names: set[str] = set()
+    module_pattern = re.compile(
+        r"^github\.com/superdurable/dex-connectors-library/connectors/"
+        r"[a-z0-9][a-z0-9-]*(?:/[a-z0-9][a-z0-9-]*)*$"
+    )
     for entry in manifest["connectors"]:
-        if not isinstance(entry, dict) or set(entry) != CONNECTOR_KEYS:
-            raise SystemExit("each connector entry must use the exact connector contract fields")
-        for key in ("connectionName", "connectorId", "version", "authMethodId"):
+        required = CONNECTOR_KEYS - {"operations"}
+        if (not isinstance(entry, dict) or not required.issubset(entry)
+                or not set(entry).issubset(CONNECTOR_KEYS | {"triggerBindings"})):
+            raise SystemExit("each connector entry requires connectionName, connectorId, modulePath, version, authMethodId and declared operations or triggerBindings")
+        for key in ("connectionName", "connectorId", "modulePath", "version", "authMethodId"):
             if not isinstance(entry.get(key), str) or not entry[key]:
                 raise SystemExit(f"connector {key} must be a non-empty string")
-        operations = entry.get("operations")
+        if module_pattern.fullmatch(entry["modulePath"]) is None:
+            raise SystemExit("connector modulePath must be the exact published official Go module")
+        operations = entry.get("operations", [])
         if (not isinstance(operations, list)
-                or not operations
                 or any(not isinstance(value, str) or not value for value in operations)):
-            raise SystemExit("connector operations must be a non-empty string list")
+            raise SystemExit("connector operations must be a string list")
+        bindings = entry.get("triggerBindings", [])
+        if not isinstance(bindings, list):
+            raise SystemExit("connector triggerBindings must be a list")
+        identities: set[tuple[str, str]] = set()
+        for binding in bindings:
+            if (not isinstance(binding, dict) or set(binding) != {"triggerName", "bindingName"}
+                    or any(not isinstance(value, str) or not value for value in binding.values())):
+                raise SystemExit("connector trigger bindings require non-empty triggerName and bindingName")
+            identity = (binding["triggerName"], binding["bindingName"])
+            if identity in identities:
+                raise SystemExit("connector trigger bindings must be unique")
+            identities.add(identity)
+        if not operations and not bindings:
+            raise SystemExit("connector requires at least one operation or trigger binding")
         if entry["connectionName"] in connection_names:
             raise SystemExit("connector connectionName values must be unique")
         connection_names.add(entry["connectionName"])
-        connections.append({**entry, "operations": sorted(set(operations))})
+        connections.append({**entry, "operations": sorted(set(operations)),
+                            "triggerBindings": sorted(bindings, key=lambda value: (value["triggerName"], value["bindingName"]))})
     return sorted(connections, key=lambda connection: connection["connectionName"])
 
 
