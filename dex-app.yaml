@@ -6,7 +6,7 @@
   },
   "flowDefinitions": [
     {
-      "sourcePath": "internal/process/flow.go"
+      "sourcePath": "internal/process/example_flow.go"
     }
   ],
   "connectors": []

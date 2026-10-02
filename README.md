@@ -1,36 +1,25 @@
 # Dex Basic Process Template
 
-A Superverse `go-react-v1` application with a non-business Hello World page, a
-generated Go/OpenAPI/React contract, and a durable approval Flow example. Studio
-or standalone Dex management provides Runs, Actions and inspection. The Dex Flow
-validates a request, waits durably for approval, emits recurring reminders, runs
-the approved automation, and completes with a typed result.
+A Superverse `go-react-v1` application with a non-business Hello World page,
+a generated Go/OpenAPI/React contract, and one minimal `process.ExampleFlow`:
 
-The durable lifecycle is:
+```text
+ExampleStep → Complete
+```
 
-1. `StartProcess`
-2. `ValidateRequest`
-3. `WaitForApproval`
-4. `EmitReminder`
-5. `ExecuteApprovedAutomation`
-6. `CompleteProcess`
-
-`WaitForApproval` races an Approval Channel against a durable 15-minute Timer.
-When the Timer fires, `EmitReminder` increments the durable reminder count and
-returns to the waiting step. Approval advances to the execution and completion
-steps.
-
-The Flow is also a complete Dex Web v2 definition. Indexed title and state
-Attributes drive list/search and Action eligibility. `GetDexSummary` and
-`GetDexDisplay` provide the read-only Web views, while `ApproveProcess` is a
-native Web v2 Action. Every Step has an FDG 2.0 group and explanation.
+The example takes no business input, has no external effects, and stores no
+business state. Studio can render its strict FDG immediately after project
+creation. Replace the example when implementing the first business feature;
+do not retain an unrelated sample Flow beside the requested application.
+`GetDexSummary` and `GetDexDisplay` are empty read-only views required by FDG 2.0.
+Runs, configuration and inspection belong to Studio or standalone Dex management.
 
 The template targets Dex Server `v0.14.1`, Dex CLI `v0.14.1`, and the Dex Go
 SDK `v0.13.1`. `DEX_SERVER_BASELINE` and `DEX_CLI_BASELINE` pin the hosted
 runtime and local tooling releases used by CI. Dex Web is embedded in both
 release artifacts rather than published as a separate package.
 
-`internal/worker` assembles the process service, Dex Worker, Client, and
+`internal/worker` assembles the Dex Worker and
 blob cache and manages their startup and shutdown through `worker.Worker`.
 Repository-owned names must describe concrete responsibilities. The
 case-insensitive stems `runtime` and `normaliz` are prohibited in names,
@@ -40,8 +29,7 @@ Static checks in `tools/checkcontract` enforce this rule in
 `make check-contracts` and `make check`.
 
 The default page only calls `GetApplicationInfo`; the application has no Flow
-management HTTP routes. The example Flow and its real-Dex integration scenarios
-remain available for learning and adaptation. Add application APIs and a custom
+management HTTP routes. The example Flow is available for adaptation. Add application APIs and a custom
 UI only for actual product interactions not covered by the host. Preserve the
 generated contract pipeline when adapting the Flow; check the full production
 frontend as well as Go so removed APIs cannot leave broken imports behind.
@@ -197,7 +185,7 @@ manifest's version as an immutable GitHub release after Template CI passes.
 Dex Skills and Superverse then advance their release pins through separate
 reviewed pull requests.
 
-## Template 1.9 changes
+## Template 1.9.1 history
 
 Version 1.9.1 separates template-repository automation checks from exported
 application checks. Flow behavior, SDK pins, configuration loading and UI are
@@ -232,7 +220,7 @@ This README, AGENTS.md, template manifest and static contracts describe the same
 source gate, configuration loader and host management boundary.
 
 
-## Source-only application baseline
+## Template 1.9.3 source-only baseline (historical)
 
 ### Dex Flow Changes
 
@@ -269,3 +257,57 @@ validated, and release output normalizes absent bindings to an empty list.
 This aligns source checks with Studio's deployment schema; it adds no tests,
 Flow primitives, database, UI surface, or dependency upgrades. The source-only
 checks and configured host acceptance boundary above remain unchanged.
+
+## Template 1.9.4: minimal initial design
+
+### Dex Flow Changes
+
+`process.ExampleFlow` is an independent top-level Flow with a single
+`process.ExampleStep` that executes synchronously and completes the engine
+execution. There is no archival state, SubFlow, Continue-As-New or business
+state transfer. Studio creates a business ID for each explicit start:
+`flow-<UUIDv4>`, for example `flow-550e8400-e29b-41d4-a716-446655440000`.
+Studio owns authorization and the complete logical Start RequestID, uses
+`IDReuseDisallow` and same-request `IgnoreError`, and recovers uncertain starts
+using that original identity. An explicit rerun creates a new FlowID; automatic
+retry never deliberately creates a new RunID.
+
+Attributes, AttributeMaps, Channels, ChannelMaps and Streams: **None**. There
+are no indexed fields, locks, CAS writes, pending messages, secrets or growing
+collections. No stream reconnection or primitive cleanup is required. Retention
+is the owning Dex Server's completed-execution retention; Project deletion owns
+final resource cleanup. There is no database schema or mirrored business state.
+
+`GetDexSummary` and `GetDexDisplay` read no primitives and return empty objects.
+Studio authorizes those reads at its project boundary. `ExampleStep.Execute`
+returns `GracefulComplete(nil)` with a ten-second attempt timeout, one attempt
+and synchronous durability. There is no WaitFor, I/O, heartbeat loop or external
+effect to reconcile. Timeout, cancellation or local failure is diagnosed through
+the engine; an authorized operator can recover the same execution. No application
+cleanup is needed.
+
+This is a new-project template change. Existing generated applications retain
+their source and `BasicProcessFlow` executions; they are neither renamed nor
+reset. The old sample service, approval primitives and six Steps are removed
+only from the new template. Go, SDK and Connector SDK pins remain unchanged.
+
+### Database Schema Changes
+
+None. No new persistent storage is introduced.
+
+### UI/UX
+
+The Hello World shell is unchanged. The host shows the exact template design
+before coding and uses business definitions after the Agent replaces the sample.
+
+### Tests
+
+`make check` validates strict FDG, generation, modules, formatting, vet and both
+production builds. Real start/completion and first-feature replacement are
+verified by Superverse Native acceptance after release; static checks do not
+claim that runtime result. No application test scaffold is added.
+
+### Documentation
+
+README, AGENTS.md, the manifest and the worker registration describe the same
+single-Step example and replacement policy.

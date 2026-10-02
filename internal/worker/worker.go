@@ -19,9 +19,7 @@ import (
 )
 
 type Worker struct {
-	Processes *process.Service
 	dexWorker *dex.Worker
-	client    *dex.Client
 	cache     *blobcache.Cache
 }
 
@@ -31,9 +29,9 @@ func New(logger *slog.Logger) (*Worker, error) {
 	if _, err := connectorconfiguration.Load(ctx, false); err != nil {
 		return nil, fmt.Errorf("validate connector configuration: %w", err)
 	}
-	registry, err := dex.NewRegistry([]dex.Flow{process.BasicProcess})
+	registry, err := dex.NewRegistry([]dex.Flow{process.ExampleFlow{}})
 	if err != nil {
-		return nil, fmt.Errorf("register Basic Process Flow: %w", err)
+		return nil, fmt.Errorf("register Example Flow: %w", err)
 	}
 	cache, err := blobcache.New(&blobcache.Config{Dir: environment("DEX_BLOB_CACHE_DIR", filepath.Join(os.TempDir(), "basic-process-blobs")), MaxBytes: 256 << 20, Logger: logger})
 	if err != nil {
@@ -45,13 +43,7 @@ func New(logger *slog.Logger) (*Worker, error) {
 		_ = cache.Close()
 		return nil, fmt.Errorf("create Dex Worker: %w", err)
 	}
-	client, err := dex.NewClient(registry, cache, dex.ClientOptions{FlowServiceAddress: flowServiceAddress, WorkerTarget: dexWorker.WorkerTarget(), Logger: logger})
-	if err != nil {
-		_ = dexWorker.Stop(context.Background())
-		_ = cache.Close()
-		return nil, fmt.Errorf("create Dex Client: %w", err)
-	}
-	return &Worker{Processes: process.NewService(client), dexWorker: dexWorker, client: client, cache: cache}, nil
+	return &Worker{dexWorker: dexWorker, cache: cache}, nil
 }
 
 func (worker *Worker) Start() <-chan error {
@@ -63,7 +55,7 @@ func (worker *Worker) Start() <-chan error {
 func (worker *Worker) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	return errors.Join(worker.dexWorker.Stop(ctx), worker.client.Close(), worker.cache.Close())
+	return errors.Join(worker.dexWorker.Stop(ctx), worker.cache.Close())
 }
 
 func environment(name, fallback string) string {
