@@ -15,7 +15,9 @@ routine defaults from that request and the host, and ask only for missing
 business decisions that materially change behavior. Do not make users choose
 Go types, Connector API methods, or debug compiler errors. Add a custom UI only
 for a requested interaction that the host management surface cannot provide;
-confirm that interaction's static wireframe before wiring it to real APIs.
+resolve consequential interaction choices before wiring it to real APIs. A clear
+request already authorizes its stated UI: implement it directly. Use a static
+wireframe only to clarify a material ambiguity, not as another approval gate.
 
 `openapi/openapi.yaml` is the only HTTP contract source. Never edit files below
 `internal/api/generated` or `web/src/api/generated` by hand. Change the spec,
@@ -58,7 +60,9 @@ Every Flow is a strict FDG 2.0 definition with `GetDexSummary` and
 explanation. Run `make check-fdg-v2`; never fall back to rendering schema v1.
 
 After each edit batch, run the narrowest relevant Make target. Before a source
-handoff, `make check` must pass. It restores pinned dependencies and runs
+handoff, `make check` must pass. When a host's commit tool runs this exact source
+gate, let that tool own the final full check; use focused checks while editing
+instead of immediately repeating the whole gate. `make check` restores pinned dependencies and runs
 `make check-static`: generate clients, validate strict FDG and contracts, check
 Go formatting/modules/vet, and build the production Go binary and frontend.
 These commands do not start test services or call providers.
