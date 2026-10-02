@@ -207,7 +207,7 @@ unchanged. The template CI still requires both checks.
 
 None. `process.BasicProcessFlow`, its Steps, primitive keys, start and recovery
 semantics are unchanged. The application shell no longer proxies that Flow; host
-management and the existing typed integration client exercise it directly.
+management uses its declared typed RPCs directly.
 
 ### Database Schema Changes
 
@@ -221,9 +221,10 @@ Runs and Actions belong to the authenticated host management surface.
 
 ### Tests
 
-The real Dex scenarios remain. Browser coverage verifies the production shell,
-generated endpoint and removal of the parallel management route. Full source
-checks are independently runnable before hosted Preview acceptance.
+Default applications contain no integration/browser test suite. Full source
+checks and production builds are independently runnable before configured host
+Preview/Live acceptance; runtime results remain explicitly unverified until
+the real dependency path runs.
 
 ### Documentation
 
@@ -256,3 +257,15 @@ be reported independently; no passing integration evidence is implied.
 
 The template manifest, Make commands, CI, agent guidance and this README describe
 the same source-only default. Go, SDK, Server and CLI baselines are unchanged.
+
+
+## Manifest source validation
+
+Version 1.9.3 requires each Connector's exact released `modulePath` in
+`dex-app.yaml`, preserving it in `connector-contract.json`. The short Connector
+ID does not identify a Go module. The immutable published Connector manifest
+supplies that module identity. Declared operations and Trigger bindings are
+validated, and release output normalizes absent bindings to an empty list.
+This aligns source checks with Studio's deployment schema; it adds no tests,
+Flow primitives, database, UI surface, or dependency upgrades. The source-only
+checks and configured host acceptance boundary above remain unchanged.

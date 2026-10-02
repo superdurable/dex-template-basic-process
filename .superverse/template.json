@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "buildProfile": "go-react-v1",
-  "templateVersion": "1.9.2",
+  "templateVersion": "1.9.3",
   "minimumSandboxImageContractRevision": 3,
   "openapiSpec": "openapi/openapi.yaml",
   "applicationManifest": "dex-app.yaml",

@@ -36,7 +36,7 @@ func checkTemplateContract() {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		failf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.9.2" || contract.MinimumSandboxImageContractRevision != 3 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.9.3" || contract.MinimumSandboxImageContractRevision != 3 {
 		failf("unexpected template identity: %+v", contract)
 	}
 	if baseline := strings.TrimSpace(readFile(filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.14.1" {
@@ -302,7 +302,7 @@ func main() {
 	if *repositoryAutomation {
 		checkTemplateRepositoryAutomation()
 	}
-	fmt.Println("Template contract, Go names, and integration-only test policy are valid.")
+	fmt.Println("Template contract, Go names, and source-only default policy are valid.")
 }
 
 func failf(format string, arguments ...any) {

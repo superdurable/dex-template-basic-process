@@ -132,3 +132,10 @@ report it as passed. Static contract checks remain separate from test evidence.
 When structure, commands, or required tooling changes, update this file,
 `.superverse/template.json`, `README.md`, and static contract checks together.
 Do not maintain a separate static repository map.
+
+Every `dex-app.yaml` Connector declaration includes the exact released
+`modulePath`, in addition to its connection name, Connector ID, version and
+authorization method. Obtain the module from the immutable Connector manifest;
+do not infer it from the short Connector ID. Declare operations and/or Trigger
+bindings. Source checks and emitted release contracts must preserve these same
+identities; credentials remain in the configuration store.
