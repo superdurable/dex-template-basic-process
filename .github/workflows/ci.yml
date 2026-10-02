@@ -78,7 +78,9 @@ jobs:
         working-directory: web
         run: npx playwright install --with-deps chromium
       - name: Check template
-        run: make check
+        run: |
+          make check-template-repository
+          make check
 
   release:
     needs: check

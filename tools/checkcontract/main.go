@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -35,7 +36,7 @@ func checkTemplateContract() {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		failf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.9.0" || contract.MinimumSandboxImageContractRevision != 3 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.9.1" || contract.MinimumSandboxImageContractRevision != 3 {
 		failf("unexpected template identity: %+v", contract)
 	}
 	if baseline := strings.TrimSpace(readFile(filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.14.1" {
@@ -164,6 +165,11 @@ func checkTemplateContract() {
 			failf("Dex dependency updater does not mention %q", required)
 		}
 	}
+}
+
+// Template publishing automation belongs to the template repository, not exported apps.
+func checkTemplateRepositoryAutomation() {
+	root := "."
 	updateWorkflow := readFile(filepath.Join(root, ".github", "workflows", "update-dex-dependencies.yml"))
 	for _, required := range []string{
 		"schedule:",
@@ -287,9 +293,17 @@ func readFile(path string) string {
 
 // Static repository validation is separate from API integration tests.
 func main() {
+	repositoryAutomation := flag.Bool("repository-automation", false, "also validate template-owned release/update workflows")
+	flag.Parse()
+	if flag.NArg() != 0 {
+		failf("unexpected positional arguments")
+	}
 	checkTemplateContract()
 	checkGoNamesDescribeConcreteResponsibilities()
 	checkTestPolicy()
+	if *repositoryAutomation {
+		checkTemplateRepositoryAutomation()
+	}
 	fmt.Println("Template contract, Go names, and integration-only test policy are valid.")
 }
 
