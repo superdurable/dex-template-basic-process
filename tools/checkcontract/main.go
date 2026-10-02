@@ -36,7 +36,7 @@ func checkTemplateContract() {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		failf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.9.1" || contract.MinimumSandboxImageContractRevision != 3 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.9.2" || contract.MinimumSandboxImageContractRevision != 3 {
 		failf("unexpected template identity: %+v", contract)
 	}
 	if baseline := strings.TrimSpace(readFile(filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.14.1" {
@@ -98,8 +98,6 @@ func checkTemplateContract() {
 		"releaseArtifacts": "make superverse-release-artifacts",
 		"checkContracts":   "make check-contracts",
 		"checkStatic":      "make check-static",
-		"testIntegration":  "make test-integration",
-		"testE2E":          "make test-e2e",
 		"build":            "make build",
 		"dev":              "make dev",
 		"check":            "make check",

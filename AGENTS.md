@@ -54,19 +54,25 @@ group and explanation. Run `make check-fdg-v2`; never fall back to rendering
 schema v1.
 
 After each edit batch, run the narrowest relevant Make target. Before a source
-handoff, `make check-static` must pass: it regenerates both clients, validates
-strict FDG and repository contracts, checks Go formatting/modules/vet, and builds
-the production Go binary and frontend. A source build is not business acceptance.
-CI and standalone development must also run `make check`, which exercises real
-Dex and production browser paths. A hosted authoring sandbox may not have the
-isolated test services; report that integration evidence as pending rather than
-pretending it passed or preventing a clean source build from reaching Preview.
-A failed source check remains `blocked=true`; fix it autonomously when possible.
+handoff, `make check` must pass. It restores pinned dependencies and runs
+`make check-static`: generate clients, validate strict FDG and contracts, check
+Go formatting/modules/vet, and build the production Go binary and frontend.
+These commands do not start test services or call providers.
+
+Do not add application integration or browser test suites, mocks, fake providers,
+fixtures, or test-framework dependencies unless the user explicitly requests
+them. The template intentionally has no application test scaffold. Existing
+source-only applications follow the same default. A separately requested real
+business acceptance belongs to the host after credentials are configured.
+Missing Connector credentials must not block a complete, source-verified commit:
+report that the application is ready to configure and real execution is pending.
+Never claim that compilation proves a provider call. A failed source check is a
+source blocker and must be fixed when possible. Do not remove unrelated existing
+tests from an imported application without authorization.
 
 Stable commands are `make bootstrap`, `make generate`, `make check-fdg-v2`,
 `make check-contracts`, `make check-static`, `make superverse-release-artifacts`,
-`make test-integration`, `make test-e2e`, `make build`, `make dev`, and
-`make check`.
+`make build`, `make dev`, and `make check`.
 
 `dex-app.yaml` declares every application Flow source and exact connector
 connection. Update it whenever either set changes. Never put endpoint values,
@@ -118,19 +124,10 @@ Dex Skills discovers the release and opens its own baseline pull request. Once
 the matching Dex Skills release exists, Superverse advances both immutable
 release pins in one pull request.
 
-Only integration tests that call real dependency APIs are permitted. Never add
-unit tests, isolated component tests, or mock integration tests in any language.
-Go tests must use the `integration` build tag and a real Dex Server. Playwright
-E2E tests must drive the production application backed by real dependencies.
-Do not use mocks, fakes, stubs, simulated providers, or intercepted/fulfilled
-API responses to replace dependencies, including for failure or edge cases.
-Exercise those cases through real dependency APIs or report the coverage gap.
-An integration label or build tag alone does not qualify a test: review its
-actual API calls. Dependency startup failures must fail verification, never
-skip a test or fall back to a mock. Do not restore unit-test targets, frameworks,
-fixtures, or dependencies. `make check-contracts` statically checks repository
-contracts, naming, test placement, and known mocking APIs; it is not a test suite
-and does not replace real integration or E2E evidence.
+If the user later requests tests, use actual dependency APIs and preserve the
+real-dependency policy: no unit tests, mocks, fake providers or intercepted
+responses. Missing required services fail that explicit test; do not skip it or
+report it as passed. Static contract checks remain separate from test evidence.
 
 When structure, commands, or required tooling changes, update this file,
 `.superverse/template.json`, `README.md`, and static contract checks together.
