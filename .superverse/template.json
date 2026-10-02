@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "buildProfile": "go-react-v1",
-  "templateVersion": "1.8.2",
+  "templateVersion": "1.9.0",
   "minimumSandboxImageContractRevision": 3,
   "openapiSpec": "openapi/openapi.yaml",
   "applicationManifest": "dex-app.yaml",
@@ -16,6 +16,7 @@
     "testE2E": "make test-e2e",
     "build": "make build",
     "dev": "make dev",
-    "check": "make check"
+    "check": "make check",
+    "checkStatic": "make check-static"
   }
 }

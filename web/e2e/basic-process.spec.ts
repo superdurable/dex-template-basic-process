@@ -1,23 +1,15 @@
-import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 
-test('runs approval automation through a durable reminder', async ({ page }) => {
+test('serves the application shell through the generated Go and TypeScript contract', async ({ page, request }) => {
   await page.goto('/');
-  await page.getByLabel('Automation request').fill('Approve the release');
-  await page.getByRole('button', { name: 'Start process' }).click();
-  const processPanel = page.locator('[data-flow-id]');
-  await expect(processPanel).toBeVisible();
-  const flowId = await processPanel.getAttribute('data-flow-id');
-  expect(flowId).toBeTruthy();
-  await expect(processPanel.locator('.status')).toHaveText('waiting for approval');
-  await expect.poll(() => {
-    try {
-      execFileSync('dexcli', ['flow', 'skip-timer', flowId!, '-server', process.env.DEX_FLOW_SERVICE_ADDRESS!, '-step-type', 'process.WaitForApproval', '-condition-id', 'approval-reminder', '-yes']);
-      return true;
-    } catch { return false; }
-  }, { timeout: 20_000 }).toBe(true);
-  await expect(processPanel.locator('.status')).toHaveText('reminder emitted');
-  await expect(page.getByTestId('reminder-count')).toHaveText('1');
-  await page.getByRole('button', { name: 'Approve' }).click();
-  await expect(page.getByTestId('result')).toHaveText('approved automation completed');
+  await expect(page.getByRole('heading', { name: 'Hello World', exact: true })).toBeVisible();
+  await expect(page.getByText('Dex Application', { exact: true })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByText('Dex Application', { exact: true })).toBeVisible();
+  const health = await request.get('/api/health');
+  expect(health.ok()).toBe(true);
+  expect(await health.json()).toEqual({ status: 'ok' });
+  // The application shell has no parallel Flow management HTTP boundary.
+  expect((await request.post('/api/flows', { data: { title: 'Unavailable route' } })).status()).toBe(404);
 });

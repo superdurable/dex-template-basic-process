@@ -32,14 +32,19 @@ CONNECTOR_KEYS = {
 
 def main() -> None:
     arguments = parse_arguments()
+    manifest = load_manifest()
+    definitions = render_flow_definitions(manifest, arguments.dexcli)
+    connections = connector_contract(manifest)
+    environment = environment_contract(manifest)
+    if arguments.check_only:
+        print(f"Validated {len(definitions)} strict FDG 2.0 definitions and application contracts")
+        return
     release_id = required_environment("SUPERVERSE_RELEASE_ID")
     project_id = required_environment("SUPERVERSE_PROJECT_ID")
     source_commit_sha = required_environment("SUPERVERSE_SOURCE_COMMIT_SHA")
     build_profile_digest = required_environment("SUPERVERSE_BUILD_PROFILE_DIGEST")
-    manifest = load_manifest()
     output_directory = arguments.output_directory.resolve()
     output_directory.mkdir(parents=True, exist_ok=True)
-    definitions = render_flow_definitions(manifest, arguments.dexcli)
     write_json(output_directory / "flow-definitions.json", {
         "schemaVersion": BUNDLE_SCHEMA,
         "releaseId": release_id,
@@ -52,20 +57,22 @@ def main() -> None:
         "schemaVersion": CONNECTOR_CONTRACT_SCHEMA,
         "releaseId": release_id,
         "projectId": project_id,
-        "connections": connector_contract(manifest),
+        "connections": connections,
     })
     write_json(output_directory / "environment-contract.json", {
         "schemaVersion": ENVIRONMENT_CONTRACT_SCHEMA,
         "releaseId": release_id,
         "projectId": project_id,
-        "application": environment_contract(manifest),
+        "application": environment,
     })
     (output_directory / "dex-app.yaml").write_bytes(DEX_APP.read_bytes())
 
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output-directory", type=Path, required=True)
+    destination = parser.add_mutually_exclusive_group(required=True)
+    destination.add_argument("--output-directory", type=Path)
+    destination.add_argument("--check-only", action="store_true")
     parser.add_argument("--dexcli", default=os.environ.get("DEXCLI", "dexcli"))
     return parser.parse_args()
 
@@ -138,7 +145,7 @@ def render_flow_definitions(
                 or graph.get("schemaVersion") != "2.0"
                 or graph.get("valid") is not True
                 or graph.get("diagnostics")):
-            raise SystemExit(f"FDG 2.0 graph is invalid for {source_path}")
+            raise SystemExit(f"FDG 2.0 graph is invalid for {source_path}: " + json.dumps(graph.get("diagnostics", []) if isinstance(graph, dict) else {"error": "expected an object"})[:8192])
         flow = graph.get("flow")
         flow_type = flow.get("name") if isinstance(flow, dict) else None
         if not isinstance(flow_type, str) or not flow_type or flow_type in flow_types:

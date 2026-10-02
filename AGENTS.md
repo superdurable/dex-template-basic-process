@@ -8,13 +8,14 @@ release; external developers install the released Dex plugin in their coding
 agent. Never assume a fixed skill path. This repository must not vendor, clone,
 or initialize a project-local copy.
 
-During product adaptation, first confirm whether the process needs a custom UI.
-If it does not, use Dex Web for process management and retain only a
-non-business Hello World page plus the Go/OpenAPI/React generation skeleton.
-Remove process-management routes, components, fixtures, and related tests.
-Keep only explicitly required integration ingress such as a trigger webhook.
-If a custom UI is required, confirm a static wireframe before connecting the
-generated client to the real Go and Dex backend.
+The template starts without a custom process UI. Keep its Hello World shell;
+Studio provides process management in Superverse, and standalone developers may
+use Dex Web. A clear implementation request is authorization to implement: infer
+routine defaults from that request and the host, and ask only for missing
+business decisions that materially change behavior. Do not make users choose
+Go types, Connector API methods, or debug compiler errors. Add a custom UI only
+for a requested interaction that the host management surface cannot provide;
+confirm that interaction's static wireframe before wiring it to real APIs.
 
 `openapi/openapi.yaml` is the only HTTP contract source. Never edit files below
 `internal/api/generated` or `web/src/api/generated` by hand. Change the spec,
@@ -52,13 +53,18 @@ Dex control flow in `internal/process/flow.go`. Every Step has exactly one
 group and explanation. Run `make check-fdg-v2`; never fall back to rendering
 schema v1.
 
-After each edit batch, run the narrowest relevant Make target. Before calling
-`commit_and_push`, run `make check` successfully and include it in verification.
-If `make check` fails or cannot run, report `blocked=true`. Do not weaken, skip,
-or delete a failing check.
+After each edit batch, run the narrowest relevant Make target. Before a source
+handoff, `make check-static` must pass: it regenerates both clients, validates
+strict FDG and repository contracts, checks Go formatting/modules/vet, and builds
+the production Go binary and frontend. A source build is not business acceptance.
+CI and standalone development must also run `make check`, which exercises real
+Dex and production browser paths. A hosted authoring sandbox may not have the
+isolated test services; report that integration evidence as pending rather than
+pretending it passed or preventing a clean source build from reaching Preview.
+A failed source check remains `blocked=true`; fix it autonomously when possible.
 
 Stable commands are `make bootstrap`, `make generate`, `make check-fdg-v2`,
-`make check-contracts`, `make superverse-release-artifacts`,
+`make check-contracts`, `make check-static`, `make superverse-release-artifacts`,
 `make test-integration`, `make test-e2e`, `make build`, `make dev`, and
 `make check`.
 
@@ -66,6 +72,17 @@ Stable commands are `make bootstrap`, `make generate`, `make check-fdg-v2`,
 connection. Update it whenever either set changes. Never put endpoint values,
 tokens, keys, refresh tokens, webhook secrets, or other configuration material
 in this manifest or the generated Release artifacts.
+
+`internal/connectorconfiguration` loads the official Connector SDK before any
+Worker or application goroutine starts. Project deployments use `DEX_PROJECT_*`
+and the exact snapshot version/digest; standalone connections use
+`DEX_CONNECTOR_CONFIG_FILE`. When adding a Connector, retain the loaded store
+and use the released typed adapter. Connection settings, operation configuration,
+and credentials have separate APIs: decode connection settings with
+`Configuration.DecodeConnectionConfiguration`, operation settings with the
+operation configuration loader, and current credentials with the official
+`projectconfig/provider` adapter. Inspect the pinned source for exact signatures;
+never guess fields or copy provider secrets into application code or Flow state.
 
 `make bootstrap`, `npm ci`, and `go mod download` may restore dependencies
 already declared by the committed manifests and lockfiles. Before adding or
