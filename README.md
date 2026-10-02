@@ -258,6 +258,16 @@ This aligns source checks with Studio's deployment schema; it adds no tests,
 Flow primitives, database, UI surface, or dependency upgrades. The source-only
 checks and configured host acceptance boundary above remain unchanged.
 
+## Template 1.9.5: focused authoring and actionable diagnostics
+
+Strict FDG failures report the renderer's bounded diagnostic details directly.
+When the host commit tool runs `make check`, that tool owns the final full source
+gate; run focused checks while editing rather than repeating the full gate just
+before committing. Run `make generate` before resolving imports of the ignored
+generated API packages. A clear UI request can be implemented directly; a
+wireframe is useful when a material interaction choice needs clarification.
+Go, Dex SDK, Connector SDK and frontend pins are unchanged.
+
 ## Template 1.9.4: minimal initial design
 
 ### Dex Flow Changes

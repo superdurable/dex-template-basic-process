@@ -135,9 +135,19 @@ def render_flow_definitions(
                 text=True,
             )
             if result.returncode != 0:
+                # The strict renderer can write actionable diagnostics and still
+                # exit nonzero. Preserve them so callers can repair the source
+                # without running another command to find its temporary file.
+                diagnostics = ""
+                try:
+                    failed_graph = json.loads(output_base.with_suffix(".json").read_text(encoding="utf-8"))
+                    if isinstance(failed_graph, dict) and failed_graph.get("diagnostics"):
+                        diagnostics = "\n" + json.dumps(failed_graph["diagnostics"], ensure_ascii=False)[:8192]
+                except (OSError, json.JSONDecodeError):
+                    pass
                 raise SystemExit(
                     f"FDG rendering failed for {source_path}: "
-                    + (result.stderr or result.stdout).strip()
+                    + (result.stderr or result.stdout).strip()[:2048] + diagnostics
                 )
             try:
                 graph = json.loads(output_base.with_suffix(".json").read_text(encoding="utf-8"))
