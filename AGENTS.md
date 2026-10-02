@@ -106,6 +106,10 @@ minor or major version boundary unless the user explicitly requests it.
 and Dex CLI release updates. Keep their stable-release checks, fixed automation
 branch, template-version bump, contract updates, and explicit CI dispatch
 aligned. The updater creates or refreshes a pull request; it never merges one.
+`make check-template-repository` checks these template-owned workflows and is
+required by Template CI. Superverse exports applications without `.github/`;
+`make check-contracts` and `make check-static` still validate their complete
+application contracts, but must not require or recreate template release CI.
 
 Every pull request advances `templateVersion` in
 `.superverse/template.json`. After Template CI passes on `main`, CI publishes

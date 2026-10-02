@@ -116,6 +116,11 @@ Adding this official loader keeps Go `1.25.0` and Dex SDK `v0.13.1` unchanged.
 
 ## Verification
 
+Template CI additionally runs `make check-template-repository` to validate its
+release and dependency-update workflows. Managed Superverse applications are
+exported without `.github/`; their `make check-contracts` and `make check-static`
+retain all application checks without requiring template publishing automation.
+
 ```bash
 make check-contracts
 make check-static
@@ -203,6 +208,10 @@ Dex Skills and Superverse then advance their release pins through separate
 reviewed pull requests.
 
 ## Template 1.9 changes
+
+Version 1.9.1 separates template-repository automation checks from exported
+application checks. Flow behavior, SDK pins, configuration loading and UI are
+unchanged. The template CI still requires both checks.
 
 ### Dex Flow Changes
 

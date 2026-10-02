@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: bootstrap generate check-fdg-v2 check-contracts superverse-release-artifacts test-integration test-e2e build dev check-static check
+.PHONY: bootstrap generate check-fdg-v2 check-contracts check-template-repository superverse-release-artifacts test-integration test-e2e build dev check-static check
 bootstrap:
 	go mod download
 	go -C tools/openapi mod download
@@ -14,6 +14,8 @@ superverse-release-artifacts:
 	python3 ./scripts/generate-release-artifacts.py --output-directory "$(SUPERVERSE_RELEASE_ARTIFACT_DIR)"
 check-contracts:
 	go run ./tools/checkcontract
+check-template-repository:
+	go run ./tools/checkcontract --repository-automation
 test-integration: generate check-contracts
 	./scripts/with-dex.sh go test -count=1 -tags=integration ./...
 test-e2e: generate check-contracts
