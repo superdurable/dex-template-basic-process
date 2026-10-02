@@ -36,22 +36,26 @@ This prohibition includes aliases, receivers, test helpers, abbreviations that
 retain either stem, and compound names such as `AppRuntime`, `RuntimeManager`,
 or `NormalizeInput`. Renaming must update the package path, declarations,
 imports, callers, and tests together; do not retain compatibility aliases for
-repository-owned names. `internal/worker` owns the Dex Worker, Client,
+repository-owned names. `internal/worker` owns the Dex Worker
 and blob cache lifecycle. The static Go naming check in `tools/checkcontract`
 runs with `make check-contracts` and `make check`; do not bypass it or add
 exceptions for new repository-owned names.
 
-The Dex Flow has stable Step, Attribute, Channel, Timer, and RPC identities.
-Keep external effects in `Execute`; `WaitForApproval.WaitFor` only declares the
-approval Channel and reminder Timer. Register every durable primitive in the
-Flow persistence schema. Preserve open-Flow compatibility unless the user
-explicitly requests a migration.
+The initial `process.ExampleFlow` has one `ExampleStep` and completes. On the
+first business feature, replace this scaffold: remove its Flow, Step, obsolete
+RPCs and registration, and update `dex-app.yaml` to list only the requested
+business definitions. Do not leave ExampleFlow (or an older BasicProcessFlow)
+alongside the new business Flow unless the user explicitly requests it. Preserve
+unrelated business Flows in imported or already-developed applications.
 
-The Flow is a Dex Web v2 / FDG 2.0 definition. Keep its indexed Attributes,
-`GetDexSummary`, `GetDexDisplay`, Action RPCs, directives, input structs, and
-Dex control flow in `internal/process/flow.go`. Every Step has exactly one
-group and explanation. Run `make check-fdg-v2`; never fall back to rendering
-schema v1.
+Keep external effects in `Execute`, register every durable primitive, and
+preserve open business Flow compatibility unless migration is authorized.
+The initial example has no durable primitives or external effects.
+
+Every Flow is a strict FDG 2.0 definition with `GetDexSummary` and
+`GetDexDisplay` RPCs. Keep Flow metadata and control flow together (initially
+`internal/process/example_flow.go`). Every Step has exactly one group and
+explanation. Run `make check-fdg-v2`; never fall back to rendering schema v1.
 
 After each edit batch, run the narrowest relevant Make target. Before a source
 handoff, `make check` must pass. It restores pinned dependencies and runs
