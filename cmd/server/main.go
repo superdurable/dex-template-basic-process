@@ -30,7 +30,7 @@ func run() error {
 		return err
 	}
 	defer worker.Close()
-	apiHandler, err := api.NewHandler(worker.Processes)
+	apiHandler, err := api.NewHandler()
 	if err != nil {
 		return fmt.Errorf("create OpenAPI handler: %w", err)
 	}

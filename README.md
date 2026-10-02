@@ -1,7 +1,8 @@
 # Dex Basic Process Template
 
-A complete Superverse `go-react-v1` template for a durable approval automation.
-The Go backend and React TypeScript UI share one OpenAPI contract. The Dex Flow
+A Superverse `go-react-v1` application with a non-business Hello World page, a
+generated Go/OpenAPI/React contract, and a durable approval Flow example. Studio
+or standalone Dex management provides Runs, Actions and inspection. The Dex Flow
 validates a request, waits durably for approval, emits recurring reminders, runs
 the approved automation, and completes with a typed result.
 
@@ -38,14 +39,12 @@ third-party, framework-mandated, and immutable legacy references are exempt.
 Static checks in `tools/checkcontract` enforce this rule in
 `make check-contracts` and `make check`.
 
-Applications that do not need a custom process UI keep only a non-business
-Hello World page and the Go/OpenAPI/React generation skeleton. Dex Web remains
-the complete process-management surface. Remove the template's approval,
-display, status, list, detail, mock-lifecycle, and Action-proxy routes and
-components. A trigger webhook may remain, but it is integration ingress rather
-than a management API. If the process later needs a custom UI, preserve this
-architecture, confirm a static wireframe, and then wire the generated client to
-the real Go and Dex backend.
+The default page only calls `GetApplicationInfo`; the application has no Flow
+management HTTP routes. The example Flow and its real-Dex integration scenarios
+remain available for learning and adaptation. Add application APIs and a custom
+UI only for actual product interactions not covered by the host. Preserve the
+generated contract pipeline when adapting the Flow; check the full production
+frontend as well as Go so removed APIs cannot leave broken imports behind.
 
 ## Start locally
 
@@ -97,28 +96,39 @@ or diagnostic-bearing Flow Definitions fail the Release build. Superverse pins
 the resulting object versions and digests; application secrets are never part
 of these artifacts.
 
-At startup, local development may supply `DEX_CONNECTOR_CONFIG_FILE`. A hosted
-deployment supplies the read-only `SUPERVERSE_CONNECTOR_CONFIG_FILE`, its
-`SUPERVERSE_CONNECTOR_CONFIG_DIGEST`, `PUBLIC_BASE_URL`, and—when the app has
-connector connections—the internal `SUPERVERSE_CONNECTOR_BROKER_URL` plus a
-`SUPERVERSE_CONNECTOR_WORKLOAD_CREDENTIAL_FILE`. Startup fails before the Dex
-Worker begins when the snapshot is missing or its digest differs. The app only
-retains the credential file path; refresh tokens and provider secrets remain in
-the platform broker.
+At startup, `internal/connectorconfiguration` uses the released Connector SDK
+`v0.17.0`. A project deployment provides trusted `DEX_PROJECT_*` scope, storage
+and exact configuration key/version/digest. The official SDK verifies that
+snapshot, resolves pinned application secrets and applies the environment before
+clients or goroutines start. Shared Connector credentials are read only on actual
+connection use through the typed `projectconfig/provider` adapter. There is no
+mounted configuration file or credential broker. A partial or mixed deployment
+contract prevents startup. Standalone development may use the official local
+store selected by `DEX_CONNECTOR_CONFIG_FILE`.
+
+Connection configuration (such as a provider or model), Step operation
+configuration, and credentials are distinct. Use
+`Configuration.DecodeConnectionConfiguration` for connection settings and the
+operation configuration loader for exact Flow/Step settings. Match the pinned
+Connector module's factory, config and credential types. Secret decoding and
+refresh belong at that adapter boundary; never persist credentials in a Flow.
+Adding this official loader keeps Go `1.25.0` and Dex SDK `v0.13.1` unchanged.
 
 ## Verification
 
 ```bash
 make check-contracts
+make check-static
 make test-integration
 make test-e2e
 make check
 ```
 
-Integration tests start a real Dex Server with `dexcli dev`. Playwright drives
-the production UI and uses `dexcli flow skip-timer` to exercise the reminder
-branch without waiting fifteen minutes. Every poll has a deadline. Go
-integration tests disable result caching so each run calls the real Dex APIs.
+Integration tests start a real Dex Server with `dexcli dev`; the Go scenarios
+cover approval, reminders, Worker restart and terminal reads. Playwright drives
+the production Hello World page and generated application-info endpoint. Every
+poll has a deadline. Go integration tests disable result caching so each run
+calls the real Dex APIs.
 
 Only integration tests that call real dependency APIs are permitted, including
 the Playwright E2E journey against the production application. Unit tests,
@@ -134,12 +144,20 @@ placement, and known mocking APIs through static source inspection. It is
 separate from API tests and does not prove dependency behavior. The dependency
 updater keeps its release assertions in `tools/checkcontract/main.go`.
 
-`make check-fdg-v2` validates `internal/process/flow.go` with rendering schema
-2.0 and requires a diagnostic-free graph with `valid: true`. The required
+`make check-fdg-v2` validates every Flow source declared by `dex-app.yaml` and
+its connector/environment contracts through the same renderer used for Release
+artifacts. Each graph must use rendering schema 2.0, be diagnostic-free and have
+`valid: true`. The required
 preview `dexcli` source is pinned in `DEX_CLI_BASELINE`; schema v1 is not an
 accepted fallback.
 
-`make check` is the required completion gate for coding agents and CI.
+`make check-static` is the source handoff gate. It regenerates, validates FDG and
+repository contracts, checks formatting/modules/vet, and builds both production
+artifacts without starting services or calling providers. `make check` remains
+the complete CI/standalone gate and adds real integration and browser scenarios.
+In a hosted authoring sandbox, missing isolated integration services remain an
+explicit acceptance gap; a successful source check permits Preview configuration
+and deployment, not a claim that business execution passed.
 
 The supported sandbox runtime is contract revision 3. It provides Go, Node.js,
 npm, Python 3, an FDG 2.0-capable `dexcli`, Ogen's cached module dependencies,
@@ -183,3 +201,32 @@ its pull request automatically. Every merged template change publishes the
 manifest's version as an immutable GitHub release after Template CI passes.
 Dex Skills and Superverse then advance their release pins through separate
 reviewed pull requests.
+
+## Template 1.9 changes
+
+### Dex Flow Changes
+
+None. `process.BasicProcessFlow`, its Steps, primitive keys, start and recovery
+semantics are unchanged. The application shell no longer proxies that Flow; host
+management and the existing typed integration client exercise it directly.
+
+### Database Schema Changes
+
+None. Configuration uses the official versioned project objects; no database or
+new lifecycle store is introduced.
+
+### UI/UX
+
+Hello World and public application information replace the sample approval UI.
+Runs and Actions belong to the authenticated host management surface.
+
+### Tests
+
+The real Dex scenarios remain. Browser coverage verifies the production shell,
+generated endpoint and removal of the parallel management route. Full source
+checks are independently runnable before hosted Preview acceptance.
+
+### Documentation
+
+This README, AGENTS.md, template manifest and static contracts describe the same
+source gate, configuration loader and host management boundary.

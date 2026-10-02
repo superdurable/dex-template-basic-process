@@ -26,7 +26,9 @@ type Worker struct {
 }
 
 func New(logger *slog.Logger) (*Worker, error) {
-	if _, err := connectorconfiguration.Load(false); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	if _, err := connectorconfiguration.Load(ctx, false); err != nil {
 		return nil, fmt.Errorf("validate connector configuration: %w", err)
 	}
 	registry, err := dex.NewRegistry([]dex.Flow{process.BasicProcess})
