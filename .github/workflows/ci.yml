@@ -56,16 +56,6 @@ jobs:
           cache-dependency-path: |
             web/package-lock.json
             upstream-dex/web/package-lock.json
-      - name: Install Temporal CLI 1.9.1
-        run: |
-          curl --fail --silent --show-error --location \
-            https://github.com/temporalio/cli/releases/download/v1.9.1/temporal_cli_1.9.1_linux_amd64.tar.gz \
-            --output /tmp/temporal-cli.tar.gz
-          echo "09a0326a51db84d02735e53542b9ebd8c4758daf47482a9ab0abce15844e60d5  /tmp/temporal-cli.tar.gz" | sha256sum --check
-          mkdir -p "$HOME/.local/bin"
-          tar -xzf /tmp/temporal-cli.tar.gz -C "$HOME/.local/bin" temporal
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$HOME/.local/bin/temporal" --version
       - name: Build pinned Dex CLI
         run: |
           npm --prefix upstream-dex/web ci
@@ -74,9 +64,6 @@ jobs:
           mkdir -p "$HOME/.local/bin"
           GOWORK=off go build -C upstream-dex/cli -trimpath -o "$HOME/.local/bin/dexcli" ./cmd/dexcli
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Install Playwright Chromium
-        working-directory: web
-        run: npx playwright install --with-deps chromium
       - name: Check template
         run: |
           make check-template-repository

@@ -122,27 +122,16 @@ exported without `.github/`; their `make check-contracts` and `make check-static
 retain all application checks without requiring template publishing automation.
 
 ```bash
-make check-contracts
-make check-static
-make test-integration
-make test-e2e
 make check
+# Or rerun the source gate after dependencies have been restored:
+make check-static
 ```
 
-Integration tests start a real Dex Server with `dexcli dev`; the Go scenarios
-cover approval, reminders, Worker restart and terminal reads. Playwright drives
-the production Hello World page and generated application-info endpoint. Every
-poll has a deadline. Go integration tests disable result caching so each run
-calls the real Dex APIs.
-
-Only integration tests that call real dependency APIs are permitted, including
-the Playwright E2E journey against the production application. Unit tests,
-isolated component tests, mock integration tests, fakes, stubs, and Playwright
-API-response interception are prohibited, including for failure and edge cases.
-Exercise those cases through real dependency APIs or report the coverage gap.
-An integration label alone is insufficient. Missing dependencies fail the
-check; tests must never skip or fall back to mocks. Do not add unit-test
-frameworks, fixtures, or dependencies.
+The template contains no application integration or browser test scaffold.
+Do not generate tests, fixtures, mocks or test-framework dependencies by default.
+This keeps the application small and avoids requiring private Connector keys
+while authoring source. Explicitly requested tests must call real dependencies;
+missing dependencies are an incomplete result, never a mock-backed pass.
 
 `make check-contracts` validates the template manifest, Go naming, test
 placement, and known mocking APIs through static source inspection. It is
@@ -158,11 +147,12 @@ accepted fallback.
 
 `make check-static` is the source handoff gate. It regenerates, validates FDG and
 repository contracts, checks formatting/modules/vet, and builds both production
-artifacts without starting services or calling providers. `make check` remains
-the complete CI/standalone gate and adds real integration and browser scenarios.
-In a hosted authoring sandbox, missing isolated integration services remain an
-explicit acceptance gap; a successful source check permits Preview configuration
-and deployment, not a claim that business execution passed.
+artifacts without starting services or calling providers. `make check` restores
+pinned dependencies and runs that source gate. After source handoff, configure
+credentials through the host and validate actual business execution in Preview
+and Live. Those host-owned acceptance checks are not copied into each app. A
+successful source check permits configuration and deployment; it does not claim
+that a provider call or business journey passed.
 
 The supported sandbox runtime is contract revision 3. It provides Go, Node.js,
 npm, Python 3, an FDG 2.0-capable `dexcli`, Ogen's cached module dependencies,
@@ -239,3 +229,30 @@ checks are independently runnable before hosted Preview acceptance.
 
 This README, AGENTS.md, template manifest and static contracts describe the same
 source gate, configuration loader and host management boundary.
+
+
+## Source-only application baseline
+
+### Dex Flow Changes
+
+None. Existing Flow, Step, primitive, RPC, execution and cleanup contracts remain
+unchanged; this release removes test scaffolding only.
+
+### Database Schema Changes
+
+None. No new state owner or storage is introduced.
+
+### UI/UX
+
+The Hello World shell and native host management surface remain unchanged.
+
+### Tests
+
+Default verification is `make check` and `make check-template-repository` in
+Template CI. Real configured Preview/Live acceptance remains host-owned and must
+be reported independently; no passing integration evidence is implied.
+
+### Documentation
+
+The template manifest, Make commands, CI, agent guidance and this README describe
+the same source-only default. Go, SDK, Server and CLI baselines are unchanged.

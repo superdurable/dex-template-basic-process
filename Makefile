@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: bootstrap generate check-fdg-v2 check-contracts check-template-repository superverse-release-artifacts test-integration test-e2e build dev check-static check
+.PHONY: bootstrap generate check-fdg-v2 check-contracts check-template-repository superverse-release-artifacts build dev check-static check
 bootstrap:
 	go mod download
 	go -C tools/openapi mod download
@@ -16,10 +16,6 @@ check-contracts:
 	go run ./tools/checkcontract
 check-template-repository:
 	go run ./tools/checkcontract --repository-automation
-test-integration: generate check-contracts
-	./scripts/with-dex.sh go test -count=1 -tags=integration ./...
-test-e2e: generate check-contracts
-	./scripts/with-dex.sh ./scripts/run-e2e.sh
 build: generate
 	npm --prefix web run build
 	go build -o bin/basic-process ./cmd/server
@@ -33,5 +29,3 @@ check-static: generate check-fdg-v2 check-contracts
 	go build -o bin/basic-process ./cmd/server
 check: bootstrap
 	$(MAKE) check-static
-	$(MAKE) test-integration
-	$(MAKE) test-e2e
