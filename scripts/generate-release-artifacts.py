@@ -186,9 +186,13 @@ def connector_contract(manifest: dict[str, object]) -> list[dict[str, object]]:
         if (not isinstance(entry, dict) or not required.issubset(entry)
                 or not set(entry).issubset(CONNECTOR_KEYS | {"triggerBindings"})):
             raise SystemExit("each connector entry requires connectionName, connectorId, modulePath, version, authMethodId and declared operations or triggerBindings")
-        for key in ("connectionName", "connectorId", "modulePath", "version", "authMethodId"):
+        for key in ("connectionName", "connectorId", "modulePath", "version"):
             if not isinstance(entry.get(key), str) or not entry[key]:
                 raise SystemExit(f"connector {key} must be a non-empty string")
+        # Single-method connector manifests use the canonical empty ID. The
+        # configuration service validates this against the exact released manifest.
+        if not isinstance(entry.get("authMethodId"), str):
+            raise SystemExit("connector authMethodId must be a string")
         if module_pattern.fullmatch(entry["modulePath"]) is None:
             raise SystemExit("connector modulePath must be the exact published official Go module")
         operations = entry.get("operations", [])

@@ -125,7 +125,7 @@ required by Template CI. Superverse exports applications without `.github/`;
 `make check-contracts` and `make check-static` still validate their complete
 application contracts, but must not require or recreate template release CI.
 
-Every pull request advances `templateVersion` in
+Only pull requests to the template repository advance `templateVersion` in
 `.superverse/template.json`. After Template CI passes on `main`, CI publishes
 that exact commit as `v<templateVersion>`. Never move or reuse a template tag.
 Dex Skills discovers the release and opens its own baseline pull request. Once
@@ -143,7 +143,14 @@ Do not maintain a separate static repository map.
 
 Every `dex-app.yaml` Connector declaration includes the exact released
 `modulePath`, in addition to its connection name, Connector ID, version and
-authorization method. Obtain the module from the immutable Connector manifest;
+authorization method. A legacy single-method manifest has an empty method ID;
+preserve `authMethodId: ""` instead of inventing an ID from its auth type. Obtain the module from the immutable Connector manifest;
 do not infer it from the short Connector ID. Declare operations and/or Trigger
 bindings. Source checks and emitted release contracts must preserve these same
 identities; credentials remain in the configuration store.
+
+Exported applications preserve this template source identity; ordinary business
+changes do not publish a template release or bump `templateVersion`. Their README
+documents the application, not template publishing policy. Template-only prose
+and updater checks run through `make check-template-repository`; application
+checks continue to enforce actual naming, source, FDG and manifest contracts.

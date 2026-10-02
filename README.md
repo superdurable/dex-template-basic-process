@@ -321,3 +321,32 @@ claim that runtime result. No application test scaffold is added.
 
 README, AGENTS.md, the manifest and the worker registration describe the same
 single-Step example and replacement policy.
+
+## Template 1.9.6: application authoring boundaries
+
+### Dex Flow Changes
+
+None. ExampleFlow and ExampleStep keep their existing identity and completion.
+
+### Database Schema Changes
+
+None.
+
+### UI/UX
+
+No user interface changes. An exported application's README describes its own
+business behavior without repeating template maintenance prose.
+
+### Tests
+
+`make check` still validates source, names, pins, strict FDG, generated clients
+and production builds. `make check-template-repository` additionally validates
+all template documentation and updater requirements. Release artifacts preserve
+the canonical empty `authMethodId` of a single-method Connector; the host checks
+the exact released manifest before configuration. This is static validation,
+not real provider execution.
+
+### Documentation
+
+Template publishing rules apply only to the upstream template repository.
+Generated business applications preserve their accepted template version.

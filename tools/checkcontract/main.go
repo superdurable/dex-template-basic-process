@@ -36,7 +36,7 @@ func checkTemplateContract() {
 	if err := json.Unmarshal(manifestBytes, &contract); err != nil {
 		failf("decode manifest: %v", err)
 	}
-	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.9.5" || contract.MinimumSandboxImageContractRevision != 3 {
+	if contract.SchemaVersion != 1 || contract.BuildProfile != "go-react-v1" || contract.TemplateVersion != "1.9.6" || contract.MinimumSandboxImageContractRevision != 3 {
 		failf("unexpected template identity: %+v", contract)
 	}
 	if baseline := strings.TrimSpace(readFile(filepath.Join(root, "DEX_SERVER_BASELINE"))); baseline != "server/v0.14.1" {
@@ -63,33 +63,8 @@ func checkTemplateContract() {
 	}
 	makefile := readFile(filepath.Join(root, "Makefile"))
 	agents := readFile(filepath.Join(root, contract.AgentInstructions))
-	readme := readFile(filepath.Join(root, "README.md"))
-	for name, contents := range map[string]string{"AGENTS.md": agents, "README.md": readme} {
-		if strings.Contains(contents, "/opt/superverse/dex-skills") {
-			failf("%s must discover Dex Skills through the coding-agent host", name)
-		}
-	}
 	if !strings.Contains(agents, "`dex-app-builder` skill") {
 		failf("AGENTS.md must require the installed dex-app-builder skill")
-	}
-	for name, contents := range map[string]string{"AGENTS.md": agents, "README.md": readme} {
-		for _, required := range []string{"`runtime`", "`normaliz`", "internal/worker", "make check-contracts", "make check"} {
-			if !strings.Contains(contents, required) {
-				failf("%s does not document the concrete naming policy: missing %q", name, required)
-			}
-		}
-	}
-	for name, contents := range map[string]string{"AGENTS.md": agents, "README.md": readme} {
-		contents = strings.Join(strings.Fields(contents), " ")
-		for _, required := range []string{
-			"reproducibility baselines",
-			"newer stable patch release",
-			"without separate user authorization",
-		} {
-			if !strings.Contains(contents, required) {
-				failf("%s does not document the Dex patch compatibility policy: missing %q", name, required)
-			}
-		}
 	}
 	expectedCommands := map[string]string{
 		"bootstrap":        "make bootstrap",
@@ -150,7 +125,37 @@ func checkTemplateContract() {
 			failf("generated OpenAPI files must not be tracked:\n%s", trackedGenerated)
 		}
 	}
+}
 
+// Template publishing automation belongs to the template repository, not exported apps.
+func checkTemplateRepositoryAutomation() {
+	root := "."
+	agents := readFile(filepath.Join(root, "AGENTS.md"))
+	readme := readFile(filepath.Join(root, "README.md"))
+	for name, contents := range map[string]string{"AGENTS.md": agents, "README.md": readme} {
+		if strings.Contains(contents, "/opt/superverse/dex-skills") {
+			failf("%s must discover Dex Skills through the coding-agent host", name)
+		}
+	}
+	for name, contents := range map[string]string{"AGENTS.md": agents, "README.md": readme} {
+		for _, required := range []string{"`runtime`", "`normaliz`", "internal/worker", "make check-contracts", "make check"} {
+			if !strings.Contains(contents, required) {
+				failf("%s does not document the concrete naming policy: missing %q", name, required)
+			}
+		}
+	}
+	for name, contents := range map[string]string{"AGENTS.md": agents, "README.md": readme} {
+		contents = strings.Join(strings.Fields(contents), " ")
+		for _, required := range []string{
+			"reproducibility baselines",
+			"newer stable patch release",
+			"without separate user authorization",
+		} {
+			if !strings.Contains(contents, required) {
+				failf("%s does not document the Dex patch compatibility policy: missing %q", name, required)
+			}
+		}
+	}
 	dependencyUpdater := readFile(filepath.Join(root, "scripts", "update-dex-dependencies.py"))
 	for _, required := range []string{
 		"github.com/superdurable/dex/sdk-go",
@@ -163,11 +168,6 @@ func checkTemplateContract() {
 			failf("Dex dependency updater does not mention %q", required)
 		}
 	}
-}
-
-// Template publishing automation belongs to the template repository, not exported apps.
-func checkTemplateRepositoryAutomation() {
-	root := "."
 	updateWorkflow := readFile(filepath.Join(root, ".github", "workflows", "update-dex-dependencies.yml"))
 	for _, required := range []string{
 		"schedule:",
