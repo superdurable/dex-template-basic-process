@@ -14,8 +14,8 @@ do not retain an unrelated sample Flow beside the requested application.
 `GetDexSummary` and `GetDexDisplay` are empty read-only views required by FDG 2.0.
 Runs, configuration and inspection belong to Studio or standalone Dex management.
 
-The template targets Dex Server `v0.14.1`, Dex CLI `v0.14.1`, and the Dex Go
-SDK `v0.13.1`. `DEX_SERVER_BASELINE` and `DEX_CLI_BASELINE` pin the hosted
+The template targets Dex Server `v1.4.1`, Dex CLI `v1.4.2`, and the Dex Go
+SDK `v1.4.0`. `DEX_SERVER_BASELINE` and `DEX_CLI_BASELINE` pin the hosted
 runtime and local tooling releases used by CI. Dex Web is embedded in both
 release artifacts rather than published as a separate package.
 
@@ -100,7 +100,7 @@ configuration, and credentials are distinct. Use
 operation configuration loader for exact Flow/Step settings. Match the pinned
 Connector module's factory, config and credential types. Secret decoding and
 refresh belong at that adapter boundary; never persist credentials in a Flow.
-Adding this official loader keeps Go `1.25.0` and Dex SDK `v0.13.1` unchanged.
+Adding this official loader keeps Go `1.25.0` and Dex SDK `v1.4.0` unchanged.
 
 ## Verification
 
