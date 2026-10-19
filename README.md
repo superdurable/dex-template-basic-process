@@ -1,5 +1,7 @@
 # Dex Basic Process Template
 
+⚠️ Moved & merged into [Superverse repo](https://github.com/superdurable/superverse)
+
 A Superverse `go-react-v1` application with a non-business Hello World page,
 a generated Go/OpenAPI/React contract, and one minimal `process.ExampleFlow`:
 
